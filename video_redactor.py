@@ -1,4 +1,5 @@
-import PIL
+import cv2
+import os
 
 class Video_redactor:
 
@@ -6,5 +7,5 @@ class Video_redactor:
         self.name = name
 
     def open_video(self):
-        with self.name as video:
-            print(video)
+        path = os.getcwd()
+        video = cv2.capture

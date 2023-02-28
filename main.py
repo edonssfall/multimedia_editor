@@ -15,7 +15,9 @@ if __name__ == '__main__':
         elif bash.command.startswith('/d'):
             bash.hard_driver_move()
         elif bash.command.startswith('/v'):
-            with ('')
+            video = Video_redactor
+            video.name = 'test.mp4'
+            video.open_video()
         else:
             bash.bash_commands()
         bash.command = input(bash)
