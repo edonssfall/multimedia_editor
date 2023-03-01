@@ -13,16 +13,18 @@ class Video_redactor:
         path = os.getcwd()
         #file = cv2.VideoCapture(f"{os.getcwd()}/{self.name}")
         file = cv2.VideoCapture(self.name)
-        file_list = np.array([])
         fps = (file.get(cv2.CAP_PROP_FPS))
+        frames_list = list()
+
         while True:
             ret, frame = file.read()
-            print(len(file_list)/720)
+            print(len(frames_list))
             if ret:
-                file_list = np.append(file_list, frame)
+                frames_list.append(frame)
             else:
                 break
-        return file_list
+        frame_array = np.array([[self.name, fps]])
+        return frame_array
 
 
 video = Video_redactor()
