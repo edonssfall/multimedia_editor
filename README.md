@@ -1,1 +1,1 @@
-sudo apt install ffmpeg
+Using Python 3.10, OpenCV
