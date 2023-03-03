@@ -4,61 +4,53 @@ import cv2
 import numpy as np
 
 
-def get_video_data(file_name):
-    """
-    Get videofile metadata: fps, fpms, resolution
-    and open file in cv2
-    :param file_name: name of file
-    :return: list with metadata
-    """
-    video_file = cv2.VideoCapture(file_name)
-    name = file_name[:file_name.rfind(".")]
-    fps = video_file.get(cv2.CAP_PROP_FPS)
-    fpms = 1 / fps
-    resolution = int(video_file.get(cv2.CAP_PROP_FRAME_HEIGHT))
-    meta_data = np.array([video_file, name, round(fps, 0), round(fpms, 3), resolution])
-    return meta_data
-
-
-def equal_or_60(num1, num2):
-    """
-    Check milliseconds or seconds or minutes for +1 second minute or hour
-    """
-    if num1 >= 60:
-        num1 = 0
-        num2 += 1
-    return num1, num2
-
-
 class Video_redactor:
 
-    def __init__(self, video_cv2, name=str, fps=int, fpms=float, resolution=int):
+    def __init__(self, name=str):
         """
-        :param video_cv2: open file in cv2
-        :param name: name of folder
-        :param fps: frames per second
-        :param fpms: milliseconds for one frame
-        :param resolution: quality resolution
+        :param name: name of video file
         """
         self.name = name
-        self.video = video_cv2
-        self.fps = fps
-        self.fpms = fpms
-        self.resolution = resolution
+        self.video = None
+        self.fps = None
+        self.fpms = None
+        self.resolution = None
+        self.get_video_data()
+
+    def get_video_data(self):
+        """
+        Get videofile metadata: fps, fpms, resolution
+        and open file in cv2
+        """
+        self.video = cv2.VideoCapture(self.name)
+        self.name = self.name[:self.name.rfind('.')]
+        self.fps = round(self.video.get(cv2.CAP_PROP_FPS), 0)
+        self.fpms = round(1 / self.fps, 3)
+        self.resolution = int(self.video.get(cv2.CAP_PROP_FRAME_HEIGHT))
+
+    @staticmethod
+    def equal_to_60(num1, num2):
+        """
+        Check milliseconds or seconds, or minutes for +1 second, minute or hour
+        """
+        if num1 >= 60:
+            num1 = 0
+            num2 += 1
+        return num1, num2
 
     def count_time(self, frame, time_list):
         """
-        Video duration 24:30 round 8 minutes
+        Video duration 24:30 round 8 minutes with cpu
         Split video file to frames in folder with name of videofile
         """
-        h, m, s, ms = time_list[0], time_list[1], time_list[2], time_list[3]
-        ms += self.fpms
+        hours, minutes, seconds, milliseconds = time_list[0], time_list[1], time_list[2], time_list[3]
+        milliseconds += self.fpms
         if frame % self.fps == 0:
-            ms = 0
-            s += 1
-        s, m = equal_or_60(s, m)
-        m, h = equal_or_60(m, h)
-        time_list = [int(h), int(m), int(s), round(ms, 3)]
+            milliseconds = 0
+            seconds += 1
+        seconds, minutes = self.equal_to_60(seconds, minutes)
+        minutes, hours = self.equal_to_60(minutes, hours)
+        time_list = [int(hours), int(minutes), int(seconds), round(milliseconds, 3)]
         return time_list
 
     def folder_frames(self):
@@ -67,10 +59,10 @@ class Video_redactor:
         """
         folder_path = os.getcwd()
         try:
-            if os.path.exists(self.name):
+            if not os.path.exists(self.name):
+                os.system(f'mkdir {self.name}')
                 os.chdir(f'{folder_path}/{self.name}')
             else:
-                os.system(f'mkdir {self.name}')
                 os.chdir(f'{folder_path}/{self.name}')
         except OSError:
             print(f"You don't have permission to change or create")
@@ -80,12 +72,12 @@ class Video_redactor:
         Split videofile to frames and call them in (self.name_HH:MM:SS:MSS)
         """
         self.folder_frames()
-        frames = 1
+        frames_counter = 1
         time_list = [0, 0, 0, 0]
         while True:
             ret, frame = self.video.read()
             if ret:
-                time_list = self.count_time(frames, time_list)
+                time_list = self.count_time(frames_counter, time_list)
                 cv2.imwrite(
                     f'{self.name}'
                     f'_{str(time_list[0]).zfill(2)}'
@@ -96,21 +88,12 @@ class Video_redactor:
                 )
             else:
                 break
-            frames += 1
+            frames_counter += 1
 
 
 start = time()
 path = '91_Days_[05]_[AniLibria_TV]_[HDTV-Rip_720p].mkv'
-video_data = get_video_data(path)
+video = Video_redactor(name=path)
 
-video = Video_redactor(
-    video_cv2=video_data[0],
-    name=video_data[1],
-    fps=video_data[2],
-    fpms=video_data[3],
-    resolution=video_data[4]
-)
-
-video.split_video_to_frames()
-end = time() - start
+end: float = time() - start
 print(end)
