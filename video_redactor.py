@@ -1,3 +1,4 @@
+import math
 import os
 from time import time
 import cv2
@@ -69,12 +70,33 @@ class Video_redactor:
             print(f"You don't have permission to change or create")
 
     def image_name(self, time_list):
+        """
+        Make name for image
+        :param time_list: list with time code of frame
+        :return:
+        """
         name = f'{self.name}'\
                f'_{str(time_list[0]).zfill(2)}'\
                f':{str(time_list[1]).zfill(2)}'\
                f':{str(time_list[2]).zfill(2)}'\
                f':{str(time_list[3])[2:].zfill(3)}.jpg'
         return name
+
+    @staticmethod
+    def timing_name(start, end):
+        """
+        return start end round milliseconds
+        :param start:
+        :param end:
+        :return:
+        """
+        timing_start = f'{str(start[0]).zfill(2)}.' \
+               f'{str(start[1]).zfill(2)}.' \
+               f'{str(start[2]).zfill(2)}'
+        timing_end = f'{str(end[0]).zfill(2)}.' \
+                       f'{str(end[1]).zfill(2)}.' \
+                       f'{str(end[2]).zfill(2)}'
+        return timing_start, timing_end
 
     def split_video_to_frames(self):
         """
@@ -97,6 +119,11 @@ class Video_redactor:
 
     @staticmethod
     def check_one_color(frame):
+        """
+        need to do
+        :param frame:
+        :return:
+        """
         gray_image = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         avg_color_per_row = np.average(gray_image, axis=0)
         avg_color = np.average(avg_color_per_row, axis=0)
@@ -107,30 +134,52 @@ class Video_redactor:
 
     @staticmethod
     def open_compare_video(video_name):
+        """
+        Open vidio for first compare by global path
+        :param video_name: video name
+        :return:
+        """
         global_path_to_vide = os.getcwd()
         global_path_to_vide = f"{global_path_to_vide[:global_path_to_vide.rfind('/')]}/{video_name}"
         return global_path_to_vide
 
-    @staticmethod
-    def find_index(list1, list2):
-        for i in range(len(list1)):
-            if list1[i] == list2:
-                return i
-
     def find_timecode_same_frames(self, time_list):
+        """
+        Cut all timings, to find granicy
+        :param time_list: list of timings of same frames
+        :return:
+        """
         timing_list = []
         end_same = []
-        while True:
-            start_same = time_list[0]
-            for i in range(1, len(time_list)):
-                compare_time_list = self.count_time(i, time_list[i-1])
-                if time_list[i] == compare_time_list:
-                    end_same = compare_time_list
+        start_same = time_list[0]
+        for i in range(1, len(time_list)):
+            compare_time_list = self.count_time(1, time_list[i-1])
+            if time_list[i] == compare_time_list:
+                end_same = compare_time_list
+                if end_same == time_list[-1]:
+                    timing_list.append([start_same, end_same])
             else:
                 timing_list.append([start_same, end_same])
-                time_list = time_list[self.find_index(time_list, end_same):]
+                start_same = time_list[i]
                 end_same = []
-                continue
+        self.encode_timings(timing_list)
+
+    def encode_timings(self, timings_list):
+        """
+        Encoding time list for moviepy to cut parts
+        :param timings_list:
+        :return:
+        """
+        for i in timings_list:
+            start = i[0]
+            end = i[1]
+            if end[2] - start[2] >= 9:
+                if start[4] != 0:
+                    start[3] = start[3] + 1
+                if end[4] != 0:
+                    end[3] = end[3] - 1
+            timing_start, timing_end = self.timing_name(start, end)
+        print(timing_start, timing_end)
 
     def compare_video(self, video_name):
         """
@@ -166,7 +215,7 @@ class Video_redactor:
         return same_frames_time
 
 
-start = time()
+start_time = time()
 path = 'test.mp4'
 video = Video_redactor(name=path)
 
@@ -188,6 +237,5 @@ video.find_timecode_same_frames([[0, 4, 10, 0],
                                 [0, 4, 10, 0.462],
                                 [0, 4, 10, 0.495],
                                 [0, 4, 10, 0.528],
-                        [0, 4, 10, 0.561]])
-end: float = time() - start
-print(end)
+                                [0, 4, 10, 0.561]])
+print(time() - start_time)
