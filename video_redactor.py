@@ -109,13 +109,13 @@ class Video_redactor:
             ret, frame = self.video.read()
             if ret:
                 time_list = self.count_time(frames_counter, time_list)
+                frames_counter += 1
                 cv2.imwrite(
                     self.image_name(time_list),
                     frame
                 )
             else:
                 break
-            frames_counter += 1
 
     @staticmethod
     def check_one_color(frame):
@@ -189,18 +189,16 @@ class Video_redactor:
         """
         self.folder_frames()
         video_compare = cv2.VideoCapture(self.open_compare_video(video_name))
-        same_frames_time_orig = []
-        same_frames_time_compare = []
-        time_list_orig = [0, 0, 0, 0]
-        time_list_compare = [0, 0, 0, 0]
-        frames_counter_orig = 1
-        frames_counter_compare = 1
+        same_frames_time_orig, same_frames_time_compare = [], []
+        time_list_orig, time_list_compare = [0, 0, 0, 0], [0, 0, 0, 0]
+        frames_counter_orig, frames_counter_compare = 1, 1
         frames_flag = 1
         skip_opening = False
+
         while True:
             ret_orig, frame_orig = self.video.read()
-            time_list_orig = self.count_time(frames_counter_orig, time_list_orig)
             if ret_orig:
+                time_list_orig = self.count_time(frames_counter_orig, time_list_orig)
                 frames_counter_orig += 1
                 print(time_list_orig)
                 # If last frame was same, skip opening from the beginning
@@ -209,15 +207,12 @@ class Video_redactor:
                     frames_counter_compare = 0
                     video_compare = cv2.VideoCapture(self.open_compare_video(video_name))
                 while True:
-                    time_list_compare = self.count_time(frames_counter_compare, time_list_compare)
                     ret_compare, frame_compare = video_compare.read()
                     if ret_compare:
                         frames_counter_compare += 1
-                        # When no same frames, open file till 10 minutes
-                        if len(same_frames_time_compare) == 0 and time_list_compare[1] >= 5:
-                            break
+                        time_list_compare = self.count_time(frames_counter_compare, time_list_compare)
                         # When once same part was found, to don't start check from the beginning
-                        elif frames_counter_compare >= frames_flag:
+                        if frames_counter_compare >= frames_flag:
                             difference = cv2.absdiff(frame_orig, frame_compare)
                             if (difference == 0).all():
                                 cv2.imwrite(
@@ -229,6 +224,9 @@ class Video_redactor:
                                 frames_flag = frames_counter_compare
                                 skip_opening = True
                                 break
+                        # When no same frames, open file till 5 minutes
+                        elif len(same_frames_time_compare) == 0 and time_list_compare[1] >= 5:
+                            break
                         else:
                             skip_opening = False
                             break
