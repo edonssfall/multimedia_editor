@@ -59,13 +59,13 @@ class Video_redactor:
         """
         Make a folder with self.name and choose that folder to save frames there
         """
-        folder_path = os.getcwd()
+        folder_path = f'{os.getcwd()}/{self.name}'
         try:
-            if not os.path.exists(self.name):
+            if not os.path.exists(folder_path):
                 os.system(f'mkdir {self.name}')
-                os.chdir(f'{folder_path}/{self.name}')
+                os.chdir(folder_path)
             else:
-                os.chdir(f'{folder_path}/{self.name}')
+                os.chdir(folder_path)
         except OSError:
             print(f"You don't have permission to change or create")
 
@@ -73,7 +73,7 @@ class Video_redactor:
         """
         Make name for image
         :param time_list: list with time code of frame
-        :return:
+        :return: self.name_HH:MM:SS:MSS
         """
         name = f'{self.name}'\
                f'_{str(time_list[0]).zfill(2)}'\
@@ -185,19 +185,23 @@ class Video_redactor:
         """
         First compare to find same frames
         :param video_name: video name to find all same
-        :return: list of same frames
+        :return: list of same frames orig video and second of compared
         """
         self.folder_frames()
-        same_frames_time = []
+        same_frames_time_orig = []
+        same_frames_time_compare = []
         time_list_orig = [0, 0, 0, 0]
         frames_counter_orig = 1
         while True:
             ret_orig, frame_orig = self.video.read()
             time_list_orig = self.count_time(frames_counter_orig, time_list_orig)
+            time_list_compare = [0, 0, 0, 0]
+            frames_counter_compare = 1
             if ret_orig:
                 video_compare = cv2.VideoCapture(self.open_compare_video(video_name))
                 while True:
                     ret_compare, frame_compare = video_compare.read()
+                    time_list_compare = self.count_time(frames_counter_compare, time_list_compare)
                     if ret_compare:
                         difference = cv2.absdiff(frame_orig, frame_compare)
                         if np.nonzero(difference):
@@ -205,14 +209,16 @@ class Video_redactor:
                                 self.image_name(time_list_orig),
                                 frame_orig
                             )
-                            same_frames_time.append(time_list_orig)
+                            same_frames_time_orig.append(time_list_orig)
+                            same_frames_time_compare.append(time_list_compare)
                             break
                     else:
                         break
+                    frames_counter_compare += 1
             else:
                 break
             frames_counter_orig += 1
-        return same_frames_time
+        return same_frames_time_orig, same_frames_time_compare
 
 
 start_time = time()
