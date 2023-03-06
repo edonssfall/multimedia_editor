@@ -91,11 +91,11 @@ class Video_redactor:
         :return:
         """
         timing_start = f'{str(start[0]).zfill(2)}.' \
-               f'{str(start[1]).zfill(2)}.' \
-               f'{str(start[2]).zfill(2)}'
+                       f'{str(start[1]).zfill(2)}.' \
+                       f'{str(start[2]).zfill(2)}'
         timing_end = f'{str(end[0]).zfill(2)}.' \
-                       f'{str(end[1]).zfill(2)}.' \
-                       f'{str(end[2]).zfill(2)}'
+                     f'{str(end[1]).zfill(2)}.' \
+                     f'{str(end[2]).zfill(2)}'
         return timing_start, timing_end
 
     def split_video_to_frames(self):
@@ -183,65 +183,70 @@ class Video_redactor:
 
     def compare_video(self, video_name):
         """
-        First compare to find same frames
+        First compare to find same frames, and make folder with name of second seria
         :param video_name: video name to find all same
         :return: list of same frames orig video and second of compared
         """
         self.folder_frames()
+        video_compare = cv2.VideoCapture(self.open_compare_video(video_name))
         same_frames_time_orig = []
         same_frames_time_compare = []
         time_list_orig = [0, 0, 0, 0]
+        time_list_compare = [0, 0, 0, 0]
         frames_counter_orig = 1
+        frames_counter_compare = 1
+        frames_flag = 1
+        skip_opening = False
         while True:
             ret_orig, frame_orig = self.video.read()
             time_list_orig = self.count_time(frames_counter_orig, time_list_orig)
-            time_list_compare = [0, 0, 0, 0]
-            frames_counter_compare = 1
             if ret_orig:
-                video_compare = cv2.VideoCapture(self.open_compare_video(video_name))
+                frames_counter_orig += 1
+                print(time_list_orig)
+                # If last frame was same, skip opening from the beginning
+                if not skip_opening:
+                    time_list_compare = [0, 0, 0, 0]
+                    frames_counter_compare = 0
+                    video_compare = cv2.VideoCapture(self.open_compare_video(video_name))
                 while True:
-                    ret_compare, frame_compare = video_compare.read()
                     time_list_compare = self.count_time(frames_counter_compare, time_list_compare)
+                    ret_compare, frame_compare = video_compare.read()
                     if ret_compare:
-                        difference = cv2.absdiff(frame_orig, frame_compare)
-                        if np.nonzero(difference):
-                            cv2.imwrite(
-                                self.image_name(time_list_orig),
-                                frame_orig
-                            )
-                            same_frames_time_orig.append(time_list_orig)
-                            same_frames_time_compare.append(time_list_compare)
+                        frames_counter_compare += 1
+                        # When no same frames, open file till 10 minutes
+                        if len(same_frames_time_compare) == 0 and time_list_compare[1] >= 5:
+                            break
+                        # When once same part was found, to don't start check from the beginning
+                        elif frames_counter_compare >= frames_flag:
+                            difference = cv2.absdiff(frame_orig, frame_compare)
+                            if (difference == 0).all():
+                                cv2.imwrite(
+                                    self.image_name(time_list_orig),
+                                    frame_orig
+                                )
+                                same_frames_time_orig.append(time_list_orig)
+                                same_frames_time_compare.append(time_list_compare)
+                                frames_flag = frames_counter_compare
+                                skip_opening = True
+                                break
+                        else:
+                            skip_opening = False
                             break
                     else:
                         break
-                    frames_counter_compare += 1
             else:
                 break
-            frames_counter_orig += 1
-        return same_frames_time_orig, same_frames_time_compare
+        self.find_timecode_same_frames(same_frames_time_orig)
+        self.find_timecode_same_frames(same_frames_time_compare)
 
 
 start_time = time()
-path = 'test.mp4'
+path = '91_Days_[04]_[AniLibria_TV]_[HDTV-Rip_720p].mkv'
+#path = 'test.mp4'
 video = Video_redactor(name=path)
 
-video_c = 'test.mp4'
-video.find_timecode_same_frames([[0, 4, 10, 0],
-                                [0, 4, 10, 0.033],
-                                [0, 4, 10, 0.066],
-                                [0, 4, 10, 0.099],
-                                [0, 4, 10, 0.132],
-                                [0, 4, 10, 0.165],
-                                [0, 4, 10, 0.198],
-                                [0, 4, 10, 0.231],
-                                [0, 4, 10, 0.264],
-                                [0, 4, 10, 0.297],
-                                [0, 4, 10, 0.33],
-                                [0, 4, 10, 0.363],
-                                [0, 4, 10, 0.396],
-                                [0, 4, 10, 0.429],
-                                [0, 4, 10, 0.462],
-                                [0, 4, 10, 0.495],
-                                [0, 4, 10, 0.528],
-                                [0, 4, 10, 0.561]])
+video_c = '91_Days_[05]_[AniLibria_TV]_[HDTV-Rip_720p].mkv'
+#video_c = 'test.mp4'
+
+
 print(time() - start_time)
