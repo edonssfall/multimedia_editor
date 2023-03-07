@@ -19,6 +19,10 @@ if __name__ == '__main__':
         # Move to connected device
         elif bash.command.startswith('/d'):
             bash.hard_driver_move()
+        # Show data of first video
+        elif bash.command.startswith('-v'):
+            pass
+        # Open function for editing, after chosen folder with videos
         elif bash.command.startswith('/v'):
             pass
         # Other bash commands supported by Python_3.10

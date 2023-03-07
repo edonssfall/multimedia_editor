@@ -1,4 +1,5 @@
 import math
+import ffmpeg
 import os
 from time import time
 import cv2
@@ -118,19 +119,11 @@ class Video_redactor:
                 break
 
     @staticmethod
-    def check_one_color(frame):
-        """
-        need to do
-        :param frame:
-        :return:
-        """
-        gray_image = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        avg_color_per_row = np.average(gray_image, axis=0)
-        avg_color = np.average(avg_color_per_row, axis=0)
-        if avg_color > 200:
-            return False
-        else:
-            return True
+    def difference_gray_image(frame_orig, frame_compare):
+        difference = cv2.absdiff(frame_orig, frame_compare)
+        gray = cv2.cvtColor(difference, cv2.COLOR_BGR2GRAY)
+        #print(np.sum(gray))
+        return np.sum(gray)
 
     @staticmethod
     def open_compare_video(video_name):
@@ -142,6 +135,11 @@ class Video_redactor:
         global_path_to_vide = os.getcwd()
         global_path_to_vide = f"{global_path_to_vide[:global_path_to_vide.rfind('/')]}/{video_name}"
         return global_path_to_vide
+
+    @staticmethod
+    def sum_time(time_list):
+        time_sum = time_list[0] * 180 + time_list[1] * 60 + time_list[2] + time_list[3]
+        return time_sum
 
     def find_timecode_same_frames(self, time_list):
         """
@@ -181,13 +179,17 @@ class Video_redactor:
             timing_start, timing_end = self.timing_name(start, end)
         print(timing_start, timing_end)
 
-    def compare_video(self, video_name):
+    def compare_video(self, video_name, time_orig, time_compare):
         """
         First compare to find same frames, and make folder with name of second seria
-        :param video_name: video name to find all same
+        :param time_compare: list minute and second start and end at original video
+        :param time_orig: list minute and second start and end at video compare
+        :param video_name: name of compare video
         :return: list of same frames orig video and second of compared
         """
         self.folder_frames()
+        start_time_orig, end_time_orig = time_orig[0], time_orig[1]
+        start_time_compare, end_time_compare = time_compare[0], time_compare[1]
         video_compare = cv2.VideoCapture(self.open_compare_video(video_name))
         same_frames_time_orig, same_frames_time_compare = [], []
         time_list_orig, time_list_compare = [0, 0, 0, 0], [0, 0, 0, 0]
@@ -200,38 +202,54 @@ class Video_redactor:
             if ret_orig:
                 time_list_orig = self.count_time(frames_counter_orig, time_list_orig)
                 frames_counter_orig += 1
-                print(time_list_orig)
-                # If last frame was same, skip opening from the beginning
-                if not skip_opening:
-                    time_list_compare = [0, 0, 0, 0]
-                    frames_counter_compare = 0
-                    video_compare = cv2.VideoCapture(self.open_compare_video(video_name))
-                while True:
-                    ret_compare, frame_compare = video_compare.read()
-                    if ret_compare:
-                        frames_counter_compare += 1
-                        time_list_compare = self.count_time(frames_counter_compare, time_list_compare)
-                        # When once same part was found, to don't start check from the beginning
-                        if frames_counter_compare >= frames_flag:
-                            difference = cv2.absdiff(frame_orig, frame_compare)
-                            if (difference == 0).all():
-                                cv2.imwrite(
-                                    self.image_name(time_list_orig),
-                                    frame_orig
-                                )
-                                same_frames_time_orig.append(time_list_orig)
-                                same_frames_time_compare.append(time_list_compare)
-                                frames_flag = frames_counter_compare
-                                skip_opening = True
+                # Break when time same to end time
+                if self.sum_time(time_list_orig) >= end_time_orig:
+                    break
+                # Skip while time be at start mark
+                if self.sum_time(time_list_orig) >= start_time_orig:
+                    print(time_list_orig)
+                    # If last frame was same, skip opening from the beginning
+                    if not skip_opening:
+                        time_list_compare = [0, 0, 0, 0]
+                        frames_counter_compare = 0
+                        video_compare = cv2.VideoCapture(self.open_compare_video(video_name))
+                    while True:
+                        ret_compare, frame_compare = video_compare.read()
+                        # While video opening
+                        if ret_compare:
+                            frames_counter_compare += 1
+                            time_list_compare = self.count_time(frames_counter_compare, time_list_compare)
+                            # Break when time same to end time
+                            if self.sum_time(time_list_compare) >= end_time_compare:
                                 break
-                        # When no same frames, open file till 5 minutes
-                        elif len(same_frames_time_compare) == 0 and time_list_compare[1] >= 5:
-                            break
+                            # Skip while time be at start mark
+                            if self.sum_time(time_list_compare) >= start_time_compare:
+                                print(time_list_compare)
+                                # When once same part was found, to don't start check from the beginning
+                                if frames_counter_compare >= frames_flag:
+                                    # Check that frames same and put flag of same frame and flag to skip reopening
+                                    if self.difference_gray_image(frame_orig, frame_compare) == 0:
+                                        cv2.imwrite(
+                                            self.image_name(time_list_orig),
+                                            frame_orig
+                                        )
+                                        print('wihu')
+                                        same_frames_time_orig.append(time_list_orig)
+                                        same_frames_time_compare.append(time_list_compare)
+                                        frames_flag = frames_counter_compare
+                                        skip_opening = True
+                                        break
+                                    else:
+                                        skip_opening = False
+                                        continue
+                                else:
+                                    continue
+                            else:
+                                continue
                         else:
-                            skip_opening = False
                             break
-                    else:
-                        break
+                else:
+                    continue
             else:
                 break
         self.find_timecode_same_frames(same_frames_time_orig)
@@ -239,6 +257,8 @@ class Video_redactor:
 
 
 start_time = time()
+
+
 path = '91_Days_[04]_[AniLibria_TV]_[HDTV-Rip_720p].mkv'
 #path = 'test.mp4'
 video = Video_redactor(name=path)
@@ -246,5 +266,12 @@ video = Video_redactor(name=path)
 video_c = '91_Days_[05]_[AniLibria_TV]_[HDTV-Rip_720p].mkv'
 #video_c = 'test.mp4'
 
+orig_time_list = [120, 4 * 60]
+#compare_time_list = [120, 4 * 60]
+compare_time_list = [2 * 60 + 35, 3 * 60]
+#orig_time_list = [0, 10]
+#compare_time_list = [0, 10]
+
+video.compare_video(video_c, orig_time_list, compare_time_list)
 
 print(time() - start_time)
