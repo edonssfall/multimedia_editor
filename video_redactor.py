@@ -120,10 +120,15 @@ class Video_redactor:
 
     @staticmethod
     def difference_gray_image(frame_orig, frame_compare):
-        difference = cv2.absdiff(frame_orig, frame_compare)
-        gray = cv2.cvtColor(difference, cv2.COLOR_BGR2GRAY)
-        #print(np.sum(gray))
-        return np.sum(gray)
+        treshold = 0.99
+        gray_orig = cv2.cvtColor(frame_orig, cv2.COLOR_BGR2GRAY)
+        gray_compare = cv2.cvtColor(frame_compare, cv2.COLOR_BGR2GRAY)
+        difference = cv2.matchTemplate(gray_orig, gray_compare, cv2.TM_CCOEFF_NORMED)
+        min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(difference)
+        if max_val >= treshold:
+            return True
+        else:
+            return False
 
     @staticmethod
     def open_compare_video(video_name):
@@ -224,11 +229,11 @@ class Video_redactor:
                                 break
                             # Skip while time be at start mark
                             if self.sum_time(time_list_compare) >= start_time_compare:
-                                print(time_list_compare)
+                                #print(time_list_compare)
                                 # When once same part was found, to don't start check from the beginning
                                 if frames_counter_compare >= frames_flag:
                                     # Check that frames same and put flag of same frame and flag to skip reopening
-                                    if self.difference_gray_image(frame_orig, frame_compare) == 0:
+                                    if self.difference_gray_image(frame_orig, frame_compare):
                                         cv2.imwrite(
                                             self.image_name(time_list_orig),
                                             frame_orig
