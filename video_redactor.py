@@ -1,9 +1,6 @@
-import math
-import ffmpeg
 import os
 from time import time
 import cv2
-import numpy as np
 
 
 class Video_redactor:
@@ -17,6 +14,7 @@ class Video_redactor:
         self.fps = None
         self.fpms = None
         self.resolution = None
+        self.total_frames = None
         self.get_video_data()
 
     def get_video_data(self):
@@ -27,9 +25,10 @@ class Video_redactor:
         """
         self.video = cv2.VideoCapture(self.name)
         self.name = self.name[:self.name.rfind('.')]
-        self.fps = round(self.video.get(cv2.CAP_PROP_FPS), 0)
+        self.fps = self.video.get(cv2.CAP_PROP_FPS)
         self.fpms = round(1 / self.fps, 3)
         self.resolution = int(self.video.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        self.total_frames = int(self.video.get(cv2.CAP_PROP_FRAME_COUNT))
 
     @staticmethod
     def equal_to_60(num1, num2):
@@ -120,6 +119,12 @@ class Video_redactor:
 
     @staticmethod
     def difference_gray_image(frame_orig, frame_compare):
+        """
+        Compare two frames with treshold 0.99
+        :param frame_orig: original frame
+        :param frame_compare: compare frame
+        :return: True or False
+        """
         treshold = 0.99
         gray_orig = cv2.cvtColor(frame_orig, cv2.COLOR_BGR2GRAY)
         gray_compare = cv2.cvtColor(frame_compare, cv2.COLOR_BGR2GRAY)
@@ -143,6 +148,11 @@ class Video_redactor:
 
     @staticmethod
     def sum_time(time_list):
+        """
+        Claculate all time in milliseconds
+        :param time_list: [HH, MM, SS, MMs]
+        :return: total MMs
+        """
         time_sum = time_list[0] * 180 + time_list[1] * 60 + time_list[2] + time_list[3]
         return time_sum
 
@@ -152,8 +162,7 @@ class Video_redactor:
         :param time_list: list of timings of same frames
         :return:
         """
-        timing_list = []
-        end_same = []
+        timing_list, end_same = list(), list()
         start_same = time_list[0]
         for i in range(1, len(time_list)):
             compare_time_list = self.count_time(1, time_list[i-1])
@@ -173,6 +182,7 @@ class Video_redactor:
         :param timings_list:
         :return:
         """
+        timing_start, timing_end = list(), list()
         for i in timings_list:
             start = i[0]
             end = i[1]
@@ -196,9 +206,9 @@ class Video_redactor:
         start_time_orig, end_time_orig = time_orig[0], time_orig[1]
         start_time_compare, end_time_compare = time_compare[0], time_compare[1]
         video_compare = cv2.VideoCapture(self.open_compare_video(video_name))
-        same_frames_time_orig, same_frames_time_compare = [], []
+        same_frames_time_orig, same_frames_time_compare = list(), list()
         time_list_orig, time_list_compare = [0, 0, 0, 0], [0, 0, 0, 0]
-        frames_counter_orig, frames_counter_compare = 1, 1
+        frames_counter_orig, frames_counter_compare = int(), int()
         frames_flag = 1
         skip_opening = False
 
@@ -212,11 +222,10 @@ class Video_redactor:
                     break
                 # Skip while time be at start mark
                 if self.sum_time(time_list_orig) >= start_time_orig:
-                    print(time_list_orig)
                     # If last frame was same, skip opening from the beginning
                     if not skip_opening:
                         time_list_compare = [0, 0, 0, 0]
-                        frames_counter_compare = 0
+                        frames_counter_compare = int()
                         video_compare = cv2.VideoCapture(self.open_compare_video(video_name))
                     while True:
                         ret_compare, frame_compare = video_compare.read()
@@ -229,7 +238,6 @@ class Video_redactor:
                                 break
                             # Skip while time be at start mark
                             if self.sum_time(time_list_compare) >= start_time_compare:
-                                #print(time_list_compare)
                                 # When once same part was found, to don't start check from the beginning
                                 if frames_counter_compare >= frames_flag:
                                     # Check that frames same and put flag of same frame and flag to skip reopening
@@ -238,7 +246,6 @@ class Video_redactor:
                                             self.image_name(time_list_orig),
                                             frame_orig
                                         )
-                                        print('wihu')
                                         same_frames_time_orig.append(time_list_orig)
                                         same_frames_time_compare.append(time_list_compare)
                                         frames_flag = frames_counter_compare
@@ -257,26 +264,40 @@ class Video_redactor:
                     continue
             else:
                 break
-        self.find_timecode_same_frames(same_frames_time_orig)
-        self.find_timecode_same_frames(same_frames_time_compare)
+        return same_frames_time_orig, same_frames_time_compare
+        # self.find_timecode_same_frames(same_frames_time_orig)
+        # self.find_timecode_same_frames(same_frames_time_compare)
+
+    def multiprocessing_cpu(self, cores_count, video_name):
+        """
+        Main process to multicompare video using CPU
+        :param cores_count: count cores
+        :param video_name: name of compare video
+        :return: time to slice both videos
+        """
+        orig_same_list, compare_same_list = list(), list()
+        video = cv2.VideoCapture.self.open_compare_video(video_name)
+        total_frames = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
+        fps = video.get(cv2.CAP_PROP_FPS)
+        big_part_orig = self.total_frames / self.fps
+        big_part_compare = total_frames / fps
+        small_part_orig = big_part_orig / cores_count
+        small_part_compare = big_part_compare / cores_count
 
 
 start_time = time()
 
 
 path = '91_Days_[04]_[AniLibria_TV]_[HDTV-Rip_720p].mkv'
-#path = 'test.mp4'
 video = Video_redactor(name=path)
 
 video_c = '91_Days_[05]_[AniLibria_TV]_[HDTV-Rip_720p].mkv'
-#video_c = 'test.mp4'
 
-orig_time_list = [120, 4 * 60]
-#compare_time_list = [120, 4 * 60]
-compare_time_list = [2 * 60 + 35, 3 * 60]
-#orig_time_list = [0, 10]
-#compare_time_list = [0, 10]
 
-video.compare_video(video_c, orig_time_list, compare_time_list)
+print(video.fps)
+
+time_list = [120, 4 * 60, 2 * 60 + 35, 3 * 60]
+
+video.compare_video(video_c, time_list)
 
 print(time() - start_time)
