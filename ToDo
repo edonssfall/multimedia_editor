@@ -1,0 +1,11 @@
+* Func to compare folder with images to video
+* Run from terminal
+* Add tab to terminal
+* Delete folder with same images
+* Connect to DB to make statistic of timings
+* Add extract subtitle, cut and add to edited video
+* Add in subtitles another language
+* Upscale video
+* Add class image
+* Upscale and rename translit image
+* Add func to auto find timing with same frames

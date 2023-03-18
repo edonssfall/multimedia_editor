@@ -25,6 +25,12 @@ if __name__ == '__main__':
         # Open function for editing, after chosen folder with videos
         elif bash.command.startswith('/v'):
             pass
+        # Show data of images
+        elif bash.command.startswith('-i'):
+            pass
+        # Open function for better resolution, after chosen folder with videos
+        elif bash.command.startswith('/i'):
+            pass
         # Other bash commands supported by Python_3.10
         else:
             bash.bash_commands()
