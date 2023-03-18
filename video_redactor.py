@@ -106,7 +106,7 @@ class Video_redactor:
         :param frame_compare: compare frame
         :return: True or False
         """
-        treshold = 0.95
+        treshold = 0.9
         gray_orig = cv2.cvtColor(frame_orig, cv2.COLOR_BGR2GRAY)
         gray_compare = cv2.cvtColor(frame_compare, cv2.COLOR_BGR2GRAY)
         difference = cv2.matchTemplate(gray_orig, gray_compare, cv2.TM_CCOEFF_NORMED)
@@ -132,16 +132,13 @@ class Video_redactor:
         frames_flag = int()
         reserve_flag = False
         skip_opening = False
-
         while True:
             ret_orig, frame_orig = self.video.read()
-            if not ret_orig:
+            frames_counter_orig += 1
+            if not ret_orig or frames_counter_orig >= board + (board * 2):
                 break
             else:
-                frames_counter_orig += 1
-                if frames_counter_orig >= board + (board * 2):
-                    break
-                elif frames_counter_orig <= board:
+                if frames_counter_orig <= board:
                     continue
                 # If last frame was same, skip opening from the beginning
                 if not skip_opening:
@@ -149,16 +146,12 @@ class Video_redactor:
                     video_compare = cv2.VideoCapture(self.open_compare_video(video_name))
                 while True:
                     ret_compare, frame_compare = video_compare.read()
-                    if not ret_compare:
+                    frames_counter_compare += 1
+                    if not ret_compare or frames_counter_compare >= third_part * frames_counter_orig or reserve <= 0:
                         frames_counter_compare = int()
+                        reserve = self.fps * 2
                         break
                     else:
-                        frames_counter_compare += 1
-                        # Check third part of video
-                        if frames_counter_compare >= third_part * frames_counter_orig or reserve <= 0:
-                            reserve = self.fps * 2
-                            frames_counter_compare = int()
-                            break
                         # When once same part was found, to don't start check from the beginning
                         if frames_counter_compare >= frames_flag:
                             # Check that frames same and put flag of same frame and flag to skip reopening
@@ -175,7 +168,6 @@ class Video_redactor:
                                 )
                                 break
                             elif reserve_flag:
-                                print(reserve)
                                 reserve -= 1
         os.chdir('..')
         return self.time_compared(same_frames_time_orig), self.time_compared(same_frames_time_compare)
@@ -202,8 +194,35 @@ class Video_redactor:
         os.remove(end_video)
         # os.remove(self.name)
 
-    def compare_frames_to_video(self, frames_list):
-        pass
+    def compare_frames_to_video(self, folder_frames_path):
+        """
+        Give path to folder with compared frames
+        :param folder_frames_path: path
+        :return: timing [start, etc]
+        """
+        os.chdir(folder_frames_path)
+        frames_list = sorted(os.listdir())
+        frames_counter = int()
+        same_frames = list()
+        reserve = self.fps * 2
+        reserve_flag = False
+        for frame in frames_list:
+            image = cv2.imread(frame)
+            while True:
+                ret, frame_compare = self.video.read()
+                frames_counter += 1
+                if not ret or reserve <= 0:
+                    break
+                else:
+                    if self.difference_gray_image(image, frame_compare):
+                        same_frames.append(frames_counter - 1)
+                        reserve_flag = True
+                    if reserve_flag:
+                        reserve -= 1
+            if reserve <= 0:
+                break
+        os.chdir('..')
+        return same_frames
 
 
 start_time = time()
@@ -212,7 +231,12 @@ video0 = Video_redactor(name=path)
 video_c = '91_Days_[05]_[AniLibria_TV]_[HDTV-Rip_720p].mkv'
 
 one_time = [[120, 209], [162, 251]]
-video0.slice_video(one_time[0])
+# video0.slice_video(one_time[0])
 
+os.chdir(video0.folder_name)
+path = os.getcwd()
+os.chdir('..')
+
+print(video0.compare_frames_to_video(path))
 
 print(time() - start_time)

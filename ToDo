@@ -1,4 +1,5 @@
-* Func to compare folder with images to video
+# Func to compare folder with images to video
+* To make better compare frames to video(play with treshold) and add boards
 * Run from terminal
 * Add tab to terminal
 * Delete folder with same images
