@@ -3,8 +3,6 @@ from time import time
 import cv2
 import os
 import shutil
-import io
-from contextlib import redirect_stdout
 
 
 class Video_redactor:
@@ -247,10 +245,11 @@ if __name__ == '__main__':
     print('compare frames to video')
     video1 = Video_redactor(name=video_compare)
     folder_frames = f'{video0.global_path}/{video0.folder_name}'
+    time_compare = video1.compare_frames_to_video(folder_frames)
     # while now only one part i find
-    time_compare = video1.compare_frames_to_video(folder_frames)[0]
-    print(time_compare)
-    time_compare = [time_compare[0], (time_compare[0] * video1.fps) + time_same]
+    time_compare = time_compare[0][0]
+    
+    time_compare = [time_compare, time_compare + time_same]
     print('Done frames to video compare', time_compare)
 
     print('Slice video 1')
