@@ -1,9 +1,10 @@
 # Func to compare folder with images to video
-# To make better compare frames to video(play with treshold) and add boards
-* Add atomatic check all folder to terminal
+# To make better compare frames to video(play with threshold) and add boards
+* Add automatic check all folder to terminal
 * Add test if no same frames, to find new
 * Run from terminal
 * Add tab to terminal
+* Continue finden
 # Delete folder with same images
 * Add telegram bot to send when compare finished
 * Connect to DB to make statistic of timings

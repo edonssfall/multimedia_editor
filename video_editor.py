@@ -1,11 +1,11 @@
 import math
-from time import time
 import cv2
 import os
-import shutil
+
+import numpy as np
 
 
-class Video_redactor:
+class Video_editor:
     """
     Class vido file
     Method compare_videos take 2 arguments:
@@ -93,7 +93,7 @@ class Video_redactor:
     @staticmethod
     def difference_gray_image(frame_orig, frame_compare):
         """
-        Compare two frames with treshold 0.99
+        Compare two frames with treshold 0.95
         :param frame_orig: original frame
         :param frame_compare: compare frame
         :return: True or False
@@ -108,6 +108,24 @@ class Video_redactor:
         else:
             return False
 
+    @staticmethod
+    def difference_gray_image1(frame_orig, frame_compare):
+        """
+        Compare two frames with treshold 0.95
+        :param frame_orig: original frame
+        :param frame_compare: compare frame
+        :return: True or False
+        """
+        treshold = 13
+        gray_orig = cv2.cvtColor(frame_orig, cv2.COLOR_BGR2GRAY)
+        gray_compare = cv2.cvtColor(frame_compare, cv2.COLOR_BGR2GRAY)
+        difference = cv2.absdiff(gray_orig, gray_compare)
+        mse = np.mean(difference ** 2)
+        if mse <= treshold:
+            return True
+        else:
+            return False
+
     def compare_videos(self, video_name=str(), board=int()):
         """
         First compare to find same frames, and make folder with name of second seria
@@ -116,7 +134,7 @@ class Video_redactor:
         :return: list of same frames orig video and second of compared [[start, end], [start, end]]
         """
         video_name = f'{self.global_path}/{video_name}'
-        boards_compare = [0, 1000000000000000000000000000000000000] # for auto recognize
+        boards_compare = [0, 1000000000000000000000000000000000000]  # for auto recognize
         self.folder_frames()
         video_compare = cv2.VideoCapture(video_name)
         same_frames_time_orig, same_frames_time_compare = list(), list()
@@ -124,37 +142,41 @@ class Video_redactor:
         third_part = int(self.total_frames / 3)
         reserve = self.fps * 2
         reserve_flag = False
-        skip_opening = False
+        reopening = False
         while True:
             ret_orig, frame_orig = self.video.read()
             frames_counter_orig += 1
+            print(frames_counter_orig)
             if not ret_orig or frames_counter_orig >= board + (self.fps * 100):
                 break
             else:
-                if frames_counter_orig <= board:
+                if frames_counter_orig < board:
                     continue
                 # If last frame was same, skip opening from the beginning
-                if not skip_opening:
+                if reopening:
                     frames_counter_compare = int()
+                    reserve = self.fps * 2
                     video_compare = cv2.VideoCapture(video_name)
                 while True:
                     ret_compare, frame_compare = video_compare.read()
                     frames_counter_compare += 1
-                    if not ret_compare or frames_counter_compare >= boards_compare[1] or frames_counter_compare >= third_part * frames_counter_orig or reserve <= 0:
-                        frames_counter_compare = int()
-                        reserve = self.fps * 2
+                    if reserve <= 0 or frames_counter_compare >= boards_compare[1] or frames_counter_compare >= third_part * frames_counter_orig or not ret_compare:
+                        reopening = True
+                        reserve_flag = False
                         break
                     else:
                         # When once same part was found, to don't start check from the beginning
-                        if frames_counter_compare >= boards_compare[0]:
+                        if frames_counter_compare < boards_compare[0]:
+                            continue
+                        else:
                             # Check that frames same and put flag of same frame and flag to skip reopening
-                            if self.difference_gray_image(frame_orig, frame_compare):
+                            if self.difference_gray_image1(frame_orig, frame_compare):
                                 same_frames_time_orig.append(frames_counter_orig - 1)
                                 same_frames_time_compare.append(frames_counter_compare - 1)
-                                boards_compare[0] = frames_counter_compare - 1
+                                boards_compare[0] = frames_counter_compare + 1
                                 reserve = self.fps * 2
                                 reserve_flag = True
-                                skip_opening = True
+                                reopening = True
                                 cv2.imwrite(
                                     f'{frames_counter_orig - 1}.jpg',
                                     frame_orig
@@ -175,7 +197,8 @@ class Video_redactor:
         start_video, end_video = f'start_{self.name}', f'end_{self.name}'
         txt_file = f'{os.getcwd()}/{self.folder_name}.txt'
         os.system(f"ffmpeg -i {self.name} -ss 0 -c:v libx264 -c:a aac -t {boards[0]} {start_video} >/dev/null 2>&1")
-        os.system(f"ffmpeg -i {self.name} -ss {boards[1]} -c:v libx264 -c:a aac -t {duration} {end_video} >/dev/null 2>&1")
+        os.system(
+            f"ffmpeg -i {self.name} -ss {boards[1]} -c:v libx264 -c:a aac -t {duration} {end_video} >/dev/null 2>&1")
         if not os.path.isfile(txt_file):
             os.system(f'touch {txt_file}')
         with open(txt_file, 'r+') as file:
@@ -193,7 +216,7 @@ class Video_redactor:
         :param folder_frames_path: path
         :return: timing [start, etc]
         """
-        boards = [0, (self.total_frames * self.fps) / 3] # for auto compare
+        boards = [0, (self.total_frames * self.fps) / 3]  # for auto compare
         os.chdir(folder_frames_path)
         frames_list = sorted(os.listdir())
         frames_counter = int()
@@ -213,7 +236,7 @@ class Video_redactor:
                     else:
                         if reserve_flag:
                             reserve -= 1
-                        if self.difference_gray_image(image, frame_compare):
+                        if self.difference_gray_image1(image, frame_compare):
                             same_frames.append(frames_counter - 1)
                             reserve_flag = True
                             break
@@ -221,40 +244,3 @@ class Video_redactor:
                 break
         os.chdir('..')
         return self.time_compared(same_frames)
-
-
-if __name__ == '__main__':
-    start_time = time()
-    video = '91_Days_[04]_[AniLibria_TV]_[HDTV-Rip_720p].mkv'
-    video0 = Video_redactor(name=video)
-    video_compare = '91_Days_[05]_[AniLibria_TV]_[HDTV-Rip_720p].mkv'
-    start_compare = 120 * video0.fps
-
-    print('compare 2 videos')
-    time_orig, time_compare = video0.compare_videos(video_compare, start_compare)
-    # while now only one part same findet
-    time_orig, time_compare = time_orig[0], time_compare[0]
-
-    time_same = time_orig[1] - time_orig[0]
-    print('Done!', time_same)
-
-    print('slicing Video 0')
-    video0.slice_video(time_orig)
-    print('Done slicing video 0')
-
-    print('compare frames to video')
-    video1 = Video_redactor(name=video_compare)
-    folder_frames = f'{video0.global_path}/{video0.folder_name}'
-    time_compare = video1.compare_frames_to_video(folder_frames)
-    # while now only one part i find
-    time_compare = time_compare[0][0]
-    
-    time_compare = [time_compare, time_compare + time_same]
-    print('Done frames to video compare', time_compare)
-
-    print('Slice video 1')
-    video1.slice_video(time_compare)
-    print('Done slice video 1')
-
-    shutil.rmtree(video0.folder_name)
-    print(time() - start_time, 'FINISH!!!')
