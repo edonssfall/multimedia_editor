@@ -2,9 +2,9 @@
 # To make better compare frames to video(play with threshold) and add boards
 * Add automatic check all folder to terminal
 * Add test if no same frames, to find new
-* Run from terminal
+# Run from terminal
 * Add tab to terminal
-* Continue finden
+* Continue find
 # Delete folder with same images
 * Add telegram bot to send when compare finished
 * Connect to DB to make statistic of timings

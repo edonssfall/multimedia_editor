@@ -108,11 +108,12 @@ class Cursor:
         start_time = time.time()
         video0, video1 = Video_editor(self.videos_list[0]), self.videos_list[1]
         start_compare = int(input('Enter beginning of same frames in first video in sec ')) * video0.fps
+        boards_compare = [0, 1000000000000000000000000000000000000]  # for auto recognize
 
         print('Processing first compare of 2 videos (+)')
         # Now find only one part
         compa_s = time.time()
-        time_video0, time_video1 = video0.compare_videos(video1, start_compare)
+        time_video0, time_video1 = video0.compare_videos(video1, start_compare, boards_compare)
         print(time_video0, time_video1)
         same_time_orig, same_time_compare = time_video0[0], time_video1[0]
         print(same_time_orig, same_time_compare)
