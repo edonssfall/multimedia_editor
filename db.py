@@ -1,9 +1,15 @@
 import psycopg2
-from keys import *
 
 
 class PostgresSQL_Database:
-    def __int__(self):
+    def __int__(self, dbname=str(), user=str(), password=str(), host=str(), port=str()):
+        """
+        :param dbname: database name
+        :param user: nickname
+        :param password: password
+        :param host: host
+        :param port: port
+        """
         self.dbname = dbname
         self.user = user
         self.password = password
@@ -11,6 +17,9 @@ class PostgresSQL_Database:
         self.port = port
 
     def connection(self):
+        """
+        Allways need to connect first
+        """
         connection = psycopg2.connect(
             dbname=self.dbname,
             user=self.user,
@@ -20,12 +29,17 @@ class PostgresSQL_Database:
         )
         return connection
 
-    def insert_db_timing(self, timings):
-        connect = self.connection()
-        cursor = connect.cursor()
-        placeholders = ','.join(['%s'] * len(timings))
-        insert_query = f"INSERT INTO timings VALUES ({placeholders})"
-        cursor.execute(insert_query, timings)
-        connect.commit()
+    def insert_db_timing(self, table_name, *values):
+        """
+        Add row in database
+        :param table_name: table name
+        :param values: start, duration, name
+        """
+        conn = self.connection()
+        cursor = conn.cursor()
+        placeholders = ','.join(['%s'] * len(values))
+        insert_query = f"INSERT INTO {table_name} VALUES ({placeholders})"
+        cursor.execute(insert_query, values)
+        conn.commit()
         cursor.close()
-        connect.close()
+        conn.close()

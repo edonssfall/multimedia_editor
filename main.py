@@ -1,21 +1,4 @@
-import subprocess
 from terminal import *
-import readline
-
-
-def complete(text, state):
-    # Get the current line buffer
-    line_buffer = readline.get_line_buffer()
-
-    # Split the line buffer by spaces and get the last word
-    last_word = line_buffer.split()[-1]
-
-    # Use the "compgen" command to get a list of possible completions
-    compgen_command = f"compgen -W '{text}' -- '{last_word}'"
-    completions = subprocess.check_output(compgen_command, shell=True).decode().splitlines()
-
-    # Return the next possible completion or None if there are no more completions
-    return completions[state] if state < len(completions) else None
 
 
 if __name__ == '__main__':
@@ -47,8 +30,6 @@ if __name__ == '__main__':
         # Other bash commands supported by Python_3.10
         else:
             bash.bash_commands()
-        # Input command
-        readline.set_completer(complete)
-        # Set the autocompletion function for readline
+
         bash.command = input(bash)
 

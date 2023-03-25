@@ -5,11 +5,16 @@
 # Run from terminal
 * Add tab to terminal
 # Delete folder with same images
+* Delete old videos
 * Add telegram bot to send when compare finished
 * Connect to DB to make statistic of timings
 * Add extract subtitle, cut and add to edited video
 * Add in subtitles another language
 * Upscale video
+* Path to win and unix through os.path
+
 * Add class image
 * Upscale and rename translit image
+
+
 * Write new function to compare 2 videos using database

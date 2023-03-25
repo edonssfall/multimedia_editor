@@ -43,7 +43,7 @@ class Video_editor:
         self.resolution = round(self.video.get(cv2.CAP_PROP_FRAME_HEIGHT))
         self.total_frames = round(self.video.get(cv2.CAP_PROP_FRAME_COUNT))
         self.global_path = os.getcwd()
-        self.reserve = self.fps * 7
+        self.reserve = self.fps * 6
         self.reserve_compare = self.fps * 2
 
     def folder_frames(self):
@@ -197,7 +197,6 @@ class Video_editor:
                             continue
                         else:
                             # Check that frames same and put flag of same frame and flag to skip reopening
-                            print(frames_counter_orig, reserve_orig, frames_counter_compare, reserve_compare)
                             if self.difference_gray_image(frame_orig, frame_compare) \
                                     or self.difference_gray_image1(frame_orig, frame_compare):
                                 same_frames_time_orig.append(frames_counter_orig - 1)
@@ -227,29 +226,34 @@ class Video_editor:
         :param boards: [start, end]
         """
         duration = self.total_frames * self.fps
-        start_video, end_video = f'start_{self.name}', f'end_{self.name}'
         txt_file = f'{os.getcwd()}/{self.folder_name}.txt'
-        os.system(f"ffmpeg -i {self.name} -ss 0 -c:v libx264 -c:a aac -t {boards[0]} {start_video} >/dev/null 2>&1")
-        os.system(
-            f"ffmpeg -i {self.name} -ss {boards[1]} -c:v libx264 -c:a aac -t {duration} {end_video} >/dev/null 2>&1")
-        if not os.path.isfile(txt_file):
-            os.system(f'touch {txt_file}')
-        with open(txt_file, 'r+') as file:
-            file.write(f"file 'start_{self.name}'\n"
-                       f"file 'end_{self.name}'")
-        os.system(f"ffmpeg -f concat -safe 0 -i {txt_file} -c copy {self.folder_name}_edonssfall.mkv >/dev/null 2>&1")
-        os.remove(txt_file)
-        os.remove(start_video)
-        os.remove(end_video)
+        if boards[0] == 0:
+            os.system(f"ffmpeg -i {self.name} -ss {boards[1]} -c:v libx264 -c:a aac -t "
+                      f"{duration} {self.folder_name}_edonssfall.mkv >/dev/null 2>&1")
+        else:
+            start_video, end_video = f'start_{self.name}', f'end_{self.name}'
+            os.system(f"ffmpeg -i {self.name} -ss 0 -c:v libx264 -c:a aac -t {boards[0]} {start_video} "
+                      f">/dev/null 2>&1")
+            os.system(f"ffmpeg -i {self.name} -ss {boards[1]} -c:v libx264 -c:a aac -t {duration} {end_video} "
+                      f">/dev/null 2>&1")
+            if not os.path.isfile(txt_file):
+                os.system(f'touch {txt_file}')
+            with open(txt_file, 'r+') as file:
+                file.write(f"file 'start_{self.name}'\n"
+                           f"file 'end_{self.name}'")
+            os.system(f"ffmpeg -f concat -safe 0 -i {txt_file} -c copy {self.folder_name}_edonssfall.mkv "
+                      f">/dev/null 2>&1")
+            os.remove(start_video)
+            os.remove(end_video)
+        # os.remove(txt_file)
         # os.remove(self.name)
 
-    def compare_frames_to_video(self, folder_frames_path):
+    def compare_frames_to_video(self, folder_frames_path=str(), boards=list()):
         """
         Give path to folder with compared frames
         :param folder_frames_path: path
         :return: timing [start, etc]
         """
-        boards = [0, (self.total_frames * self.fps) / 3]  # for auto compare
         os.chdir(folder_frames_path)
         frames_list = sorted(os.listdir())
         frames_counter = int()
