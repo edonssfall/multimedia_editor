@@ -1,7 +1,5 @@
-import math
 import cv2
 import os
-
 import numpy as np
 
 
@@ -28,11 +26,13 @@ class Video_editor:
         self.resolution = None
         self.total_frames = None
         self.global_path = None
+        self.reserve = None
+        self.reserve_compare = None
         self.get_video_data()
 
     def get_video_data(self):
         """
-        Get videofile metadata: open video in OpenCV, edit name(delete part after dot),
+        Get video-file metadata: open video in OpenCV, edit name(delete part after dot),
         fps, resolution, total frames
         Open file in cv2
         Delete in string name format
@@ -43,6 +43,8 @@ class Video_editor:
         self.resolution = round(self.video.get(cv2.CAP_PROP_FRAME_HEIGHT))
         self.total_frames = round(self.video.get(cv2.CAP_PROP_FRAME_COUNT))
         self.global_path = os.getcwd()
+        self.reserve = self.fps * 7
+        self.reserve_compare = self.fps * 2
 
     def folder_frames(self):
         """
@@ -61,33 +63,32 @@ class Video_editor:
     def time_compared(self, frames_count_list):
         """
         Take list and make new list with start and end
-        with stock of one sec
+        with reserve of one sec
         :param frames_count_list: list with same frames compared
-        :return: list withs list with seconds start and end
+        :return: list withs list with seconds [start, end]
         """
-        stock = self.fps * 4
+        reserve = self.reserve
         result = list()
         start, end = frames_count_list[0], int()
         for count in range(1, len(frames_count_list)):
-            if frames_count_list[count] - frames_count_list[count - 1] >= (self.fps * 4):
-                stock = self.fps * 4
+            if frames_count_list[count] - frames_count_list[count - 1] >= reserve:
+                reserve = self.reserve
                 result.append([start, end])
                 start, end = frames_count_list[count], int()
-            elif stock >= 0:
+            elif reserve >= 0:
                 if frames_count_list[count - 1] + 1 == frames_count_list[count]:
                     end = frames_count_list[count]
-                    stock = self.fps * 4
+                    reserve = self.reserve
                 else:
-                    stock -= 1
+                    reserve -= 1
             else:
-                stock = self.fps * 4
+                reserve = self.reserve
                 result.append([start, end])
                 start, end = frames_count_list[count], int()
-        result.append([start, end])
-        converted_to_time = list()
-        for seconds in result:
-            start, end = seconds[0] / self.fps, seconds[1] / self.fps
-            converted_to_time.append([math.ceil(start), math.floor(end)])
+        result.append(start)
+        result.append(end)
+        start, end = result[0] / self.fps, result[1] / self.fps
+        converted_to_time = [start, end]
         return converted_to_time
 
     @staticmethod
@@ -128,6 +129,11 @@ class Video_editor:
 
     @staticmethod
     def check_one_color_frame(frame):
+        """
+        Take frame and check if is it one color
+        :param frame: frame from opencv
+        :return: True or False
+        """
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         mean, std = cv2.meanStdDev(gray)
         variance = std[0] ** 2
@@ -139,6 +145,7 @@ class Video_editor:
     def compare_videos(self, video_name=str(), board=int(), boards_compare=list()):
         """
         First compare to find same frames, and make folder with name of second seria
+        :param boards_compare: [start, end] of compared video
         :param board: start, auto end in 2 min
         :param video_name: name of compare video
         :return: list of same frames orig video and second of compared [[start, end], [start, end]]
@@ -148,27 +155,31 @@ class Video_editor:
         video_compare = cv2.VideoCapture(video_name)
         same_frames_time_orig, same_frames_time_compare = list(), list()
         frames_counter_orig, frames_counter_compare = int(), int()
-        third_part = int(self.total_frames / 3)
-        reserve = self.fps * 2
-        reserve_flag = False
+        reserve_orig, reserve_compare = self.reserve, self.reserve_compare
+        reserve_orig_flag, reserve_compare_flag = False, False
         reopening = False
         while True:
             ret_orig, frame_orig = self.video.read()
             frames_counter_orig += 1
-            boards_compare[1] = frames_counter_orig + third_part
-            if not ret_orig or frames_counter_orig >= board + (self.fps * 100):
+            # If no more frames or reserved 4 second is done stop function
+            if not ret_orig or reserve_orig <= 0:
                 break
             else:
-                if frames_counter_orig < board or self.check_one_color_frame(frame_orig):
+                # Skip frames if frames counter under the board or frame all is one color
+                if frames_counter_orig - 1 < board or self.check_one_color_frame(frame_orig):
                     continue
+                # Reserve 10 seconds when more than 2 seconds is same
+                if reserve_orig_flag:
+                    reserve_orig -= 1
                 # If last frame was same, skip opening from the beginning
-                # Else make tief board -2 sec and if compare frames tiefer then orig
                 if reopening:
-                    if len(same_frames_time_orig) > self.fps * 2:
-                        reserve_flag = True
+                    # If more than 2 sec is same always turn on reserve_compare
+                    if len(same_frames_time_orig) > self.reserve_compare:
+                        reserve_compare_flag = True
+                    # If was suddenly same frame
                     else:
-                        reserve_flag = False
-                    reserve = self.fps * 2
+                        reserve_compare_flag = False
+                    reserve_compare = self.reserve_compare
                     boards_compare[0] += 1
                     frames_counter_compare = int()
                     video_compare = cv2.VideoCapture(video_name)
@@ -176,7 +187,8 @@ class Video_editor:
                 while True:
                     ret_compare, frame_compare = video_compare.read()
                     frames_counter_compare += 1
-                    if reserve <= 0 or frames_counter_compare >= boards_compare[1] or not ret_compare:
+                    # If reserve_compare is empty or frames counter over the board or no more frames reopen the video
+                    if reserve_compare <= 0 or frames_counter_compare >= boards_compare[1] or not ret_compare:
                         reopening = True
                         break
                     else:
@@ -185,21 +197,26 @@ class Video_editor:
                             continue
                         else:
                             # Check that frames same and put flag of same frame and flag to skip reopening
+                            print(frames_counter_orig, reserve_orig, frames_counter_compare, reserve_compare)
                             if self.difference_gray_image(frame_orig, frame_compare) \
                                     or self.difference_gray_image1(frame_orig, frame_compare):
                                 same_frames_time_orig.append(frames_counter_orig - 1)
                                 same_frames_time_compare.append(frames_counter_compare - 1)
-                                boards_compare[0] = frames_counter_compare - self.fps
-                                reserve = self.fps * 2
-                                reserve_flag = True
+                                boards_compare[0] = frames_counter_compare - 1
+                                reserve_compare = self.reserve_compare
+                                reserve_orig = self.reserve
+                                reserve_orig_flag = True
+                                reserve_compare_flag = True
                                 reopening = False
                                 cv2.imwrite(
                                     f'{frames_counter_orig - 1}.jpg',
                                     frame_orig
                                 )
                                 break
-                            elif reserve_flag:
-                                reserve -= 1
+                            # When same frame is open reserve_compare to speed up check
+                            elif reserve_compare_flag:
+                                reserve_compare -= 1
+        # Return to folder with videos
         os.chdir('..')
         return self.time_compared(same_frames_time_orig), self.time_compared(same_frames_time_compare)
 
@@ -237,13 +254,16 @@ class Video_editor:
         frames_list = sorted(os.listdir())
         frames_counter = int()
         same_frames = list()
-        reserve = self.fps * 2
+        reserve = self.reserve
         reserve_flag = False
         for frame in frames_list:
             image = cv2.imread(frame)
             while True:
                 ret, frame_compare = self.video.read()
                 frames_counter += 1
+                if len(same_frames) < self.reserve_compare:
+                    reserve_flag = False
+                    reserve = self.reserve
                 if not ret or reserve <= 0 or frames_counter >= boards[1]:
                     break
                 else:

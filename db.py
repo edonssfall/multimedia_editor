@@ -2,30 +2,30 @@ import psycopg2
 from keys import *
 
 
-class DB:
+class PostgresSQL_Database:
     def __int__(self):
-        self.connection = psycopg2.connect(
-            dbname=dbname,
-            user=user,
-            password=password,
-            host=host
-        )
+        self.dbname = dbname
+        self.user = user
+        self.password = password
+        self.host = host
+        self.port = port
 
-    def insert_db_timing(self, start, end, name):
-        cursor = self.connection
-        self.connection.autocommit = True
-        cursor.execute(
-            f'INSERT INTO timing (START, END, NAME) '
-            f'VALUES ({start}, {end}, {name})')
-        cursor.close()
-        self.connection.close()
-
-    def get_all_data(self):
-        cursor = self.connection
-        cursor.execute(
-            f'SELECT * FROM timing'
+    def connection(self):
+        connection = psycopg2.connect(
+            dbname=self.dbname,
+            user=self.user,
+            password=self.password,
+            host=self.host,
+            port=self.port
         )
-        rows = cursor.fetchall()
+        return connection
+
+    def insert_db_timing(self, timings):
+        connect = self.connection()
+        cursor = connect.cursor()
+        placeholders = ','.join(['%s'] * len(timings))
+        insert_query = f"INSERT INTO timings VALUES ({placeholders})"
+        cursor.execute(insert_query, timings)
+        connect.commit()
         cursor.close()
-        self.connection.close()
-        return rows
+        connect.close()

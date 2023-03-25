@@ -1,7 +1,7 @@
-import numpy as np
 import time
 import shutil
 from video_editor import *
+from db import *
 
 
 class Cursor:
@@ -18,6 +18,7 @@ class Cursor:
         self.path = str()
         self.cores = os.cpu_count()
         self.videos_list = list()
+        self.delete_list = list()
         self.images_list = list()
 
     def __str__(self):
@@ -104,38 +105,83 @@ class Cursor:
         elif self.command.startswith('-vs'):
             self.video_slice()
 
-    def video_slice(self):
+    def video_slice(self, video0_l=0, video1_l=1):
         start_time = time.time()
-        video0, video1 = Video_editor(self.videos_list[0]), self.videos_list[1]
-        start_compare = int(input('Enter beginning of same frames in first video in sec ')) * video0.fps
-        boards_compare = [0, 1000000000000000000000000000000000000]  # for auto recognize
-
-        print('Processing first compare of 2 videos (+)')
-        # Now find only one part
-        compa_s = time.time()
-        time_video0, time_video1 = video0.compare_videos(video1, start_compare, boards_compare)
-        print(time_video0, time_video1)
-        same_time_orig, same_time_compare = time_video0[0], time_video1[0]
-        print(same_time_orig, same_time_compare)
-        same_duration = same_time_orig[1] - same_time_orig[0]
-        print(f'{time.time()-compa_s}\nDone!\n\n')
-
-        print('Processing slicing video 0 (+)')
-        video0.slice_video(same_time_orig)
-        print('Done!\n\n')
-
-        for i in range(1, len(self.videos_list) + 1):
-            video = Video_editor(self.videos_list[i])
-            folder_frames = f'{video0.global_path}/{video0.folder_name}'
-            print(f'Processing compare frames to {video} (+)')
-            time_compare = video.compare_frames_to_video(folder_frames)
+        start_compare = int(input('Enter beginning of same frames in first video in sec '))
+        db_list = list()
+        while True:
+            video0, video1 = Video_editor(self.videos_list[video0_l]), Video_editor(self.videos_list[video1_l])
+            start_compare = start_compare * video0.fps
+            boards_compare = [0, 100000000000000000]  # for auto recognize
+            print('Processing first compare of 2 videos (+)')
             # Now find only one part
-            time_compare = time_compare[0][0]
-            time_compare = [time_compare, time_compare + same_duration]
-            print(f'Done comparing frames to {video}\n\n')
+            time_video0, time_video1 = video0.compare_videos(video1.name, start_compare, boards_compare)
+            print(time_video0, time_video1)
+            same_duration = time_video0[1] - time_video0[0]
+            if same_duration < 80:
+                print(f'{video0.folder_name} and {video1.folder_name} no same frames'
+                      f'Duration = {same_duration}')
+                while True:
+                    counter = int()
+                    flag_str = input(f'Press Enter to end compare or enter or u can enter new start same or new videos')
+                    for b in flag_str:
+                        if b == ' ':
+                            counter += 1
+                    if counter <= 1:
+                        break
+                    flag_str = input(f'Must be'
+                                     f'1     for new start'
+                                     f'1 2   for new series')
+                if len(flag_str) == 0:
+                    break
+                elif len(flag_str) == 1:
+                    same_duration = int(flag_str)
+                    continue
+                elif len(flag_str) > 1:
+                    video0, video1 = int(flag_str[:flag_str.find(' ')]), int(flag_str[flag_str.find(' '):])
+                    continue
+            print('Processing slicing video 0 (+)')
+            video0.slice_video(time_video0)
+            print('Processing slicing video 1 (+)')
+            video1.slice_video(time_video1)
+            print('Done!\n\n')
+            db_list.append([time_video0[0], same_duration, video0.folder_name])
+            db_list.append([time_video1[0], same_duration, video1.folder_name])
+            self.delete_list.append(self.videos_list[video0_l])
+            self.delete_list.append(self.videos_list[video1_l])
+            for i in range(video1_l + 1, len(self.videos_list) + 1):
+                video = Video_editor(self.videos_list[i])
+                folder_frames = f'{video0.global_path}/{video0.folder_name}'
+                print(f'Processing compare frames to {video} (+)')
+                time_compare = video.compare_frames_to_video(folder_frames)
+                self.delete_list.append(self.videos_list[i])
+                if len(time_compare) < 80 * video0.fps:
+                    print(f'Duration is {len(time_compare) * video0.fps}')
+                    while True:
+                        flag_str = input(f'Press Enter to abort compare or y to make new compare')
+                        if len(flag_str) == 0 or i >= len(self.videos_list):
+                            shutil.rmtree(video0.folder_name)
+                            break
+                        else:
+                            if len(flag_str) > 1:
+                                flag_str = input(f"Example"
+                                                 f"Only Enter"
+                                                 f"or"
+                                                 f"y")
+                                if flag_str == 'y':
+                                    shutil.rmtree(video0.folder_name)
+                                    self.video_slice(i, i+1)
+                                    break
+                time_compare = [time_compare[0], time_compare[0] + same_duration]
+                print(f'Done comparing frames to {video}\n\n')
 
-            print(f'Processing slice {video} (+)')
-            video.slice_video(time_compare)
-            print(f'Done slicing {video}\n\n')
-        shutil.rmtree(video0.folder_name)
+                print(f'Processing slice {video} (+)')
+                video.slice_video(time_compare)
+                print(f'Done slicing {video}\n\n')
+                db_list.append([time_compare[0], same_duration, video.folder_name])
+            break
+        database = DB()
+        for row in db_list:
+            database.insert_db_timing(row[0], row[1], row[2])
+        database.close_connection()
         print(time.time() - start_time, 'FINISH!!!')
