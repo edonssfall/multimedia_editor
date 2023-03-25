@@ -260,8 +260,8 @@ class Video_editor:
         same_frames = list()
         reserve = self.reserve
         reserve_flag = False
-        for frame in frames_list:
-            image = cv2.imread(frame)
+        for image in frames_list:
+            frame = cv2.imread(image)
             while True:
                 ret, frame_compare = self.video.read()
                 frames_counter += 1
@@ -275,7 +275,7 @@ class Video_editor:
                         continue
                     else:
                         if self.difference_gray_image(frame, frame_compare) \
-                                or self.difference_gray_image1(image, frame_compare):
+                                or self.difference_gray_image1(frame, frame_compare):
                             same_frames.append(frames_counter - 1)
                             reserve_flag = True
                             break

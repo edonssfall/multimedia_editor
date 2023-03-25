@@ -160,7 +160,7 @@ class Cursor:
             for i in range(video1_l + 1, len(self.videos_list) + 1):
                 video = Video_editor(self.videos_list[i])
                 folder_frames = f'{video0.global_path}/{video0.folder_name}'
-                print(f'Processing compare frames to {video} (+)')
+                print(f'Processing compare frames to {video.folder_name} (+)')
                 time_compare = video.compare_frames_to_video(folder_frames, boards_compare)
                 self.delete_list.append(self.videos_list[i])
                 # If len same time less than 80 sec
