@@ -1,8 +1,7 @@
-v0.2.0
-    -can enter thresholds and count of checking orig frames
-    -test to make faster(play with thresholds)
-    -make one func to compare anf add one if of first threshold if < 0
-    -connect db
-    -make terminal db
-    -add autofill how in bash
-    -add plans in To do
+v0.2.1
+    -delete create frames
+    -delete frames to video
+    -rewrite method of compare in terminal
+    -add video.duration
+    -write correctly end of func video cut
+    -delete video_slice

@@ -104,97 +104,60 @@ class Cursor:
             )
         # Slice video
         elif self.command.startswith('-vs'):
-            self.video_slice()
+            start_compare = str()
+            while start_compare is not int():
+                start_compare = int(input(f'Enter beginning of same frames in first video '))
+            self.video_cut(start_compare)
 
-    def video_slice(self, video0_l=0, video1_l=1):
-        start_compare = int(input('Enter beginning of same frames in first video in sec '))
+    def video_cut(self, start_compare=int(), video_count=0, reserve=2200):
         db_list = list()
-        while True:
-            video0, video1 = Video_editor(self.videos_list[video0_l]), Video_editor(self.videos_list[video1_l])
-            start_compare = start_compare * video0.fps
-            boards_compare = [0, (video0.total_frames * video0.fps) / 3]  # for auto recognize
-            print('First compare of videos        ', end='')
-            time_video0, time_video1 = video0.compare_videos(video1.name, start_compare, boards_compare)
-            same_duration = time_video0[1] - time_video0[0]
-
-            # If len of same time less than 80 sec
-            if same_duration < 80:
-                print(f'{video0.folder_name} and {video1.folder_name} not alot frames\n'
-                      f'Duration = {same_duration}')
+        video0 = Video_editor(self.videos_list[video_count])
+        start_compare = start_compare * video0.fps
+        boards_compare = [0, (video0.total_frames * video0.fps) / 6]  # for auto recognize
+        for i in range(video_count+1, len(self.videos_list)+1):
+            print(f'Compare video {i+1} (+)')
+            time_video0, time_video1 = video0.compare_videos(
+                self.videos_list[i], start_compare, boards_compare, reserve)
+            duration = time_video1[1] - time_video1[0]
+            print(time_video0, time_video1, duration)
+            print()
+            if duration < 15:
+                print(f'Duration is {len(time_video1) * video0.fps}')
+                flag_str = input(f'Press Enter to abort compare or y to make new compare >')
                 while True:
-                    counter = int()
-                    flag_str = input(f'Press Enter to end compare or enter or u can enter new start to compare')
-                    for b in flag_str:
-                        if b == ' ':
-                            counter += 1
-                    if counter <= 1:
-                        break
-                    flag_str = input(f'Must be\n'
-                                     f'1     for new start\n'
-                                     f'1 2   for new series\n'
-                                     f'>')
-                if len(flag_str) == 0:
-                    break
-                elif flag_str.isdigit():
-                    start_compare = int(flag_str)
-                    continue
-                elif len(flag_str) > 1:
-                    # Command to skip rerunning
-                    if flag_str.startswith('go'):
+                    if len(flag_str) == 0 or i >= len(self.videos_list) + 1:
                         pass
                     else:
-                        video0, video1 = int(flag_str[:flag_str.find(' ')]), int(flag_str[flag_str.find(' '):])
-                        continue
-
-            print('Processing slicing video 0             ',)
-            video0.slice_video(time_video0)
-            print('Processing slicing video 1             ',)
-            video1.slice_video(time_video1)
-
-            # Add to lists to delete and add info to db
-            db_list.append([time_video0[0], same_duration, video0.folder_name])
-            db_list.append([time_video1[0], same_duration, video1.folder_name])
-            self.delete_list.append(self.videos_list[video0_l])
-            self.delete_list.append(self.videos_list[video1_l])
-
-            for i in range(video1_l + 1, len(self.videos_list) + 1):
-                video = Video_editor(self.videos_list[i])
-                folder_frames = f'{video0.global_path}/{video0.folder_name}'
-                print(f'Processing compare frames to video {i} ')
-                time_compare = video.compare_frames_to_video(folder_frames, boards_compare)
-                self.delete_list.append(self.videos_list[i])
-                # If len same time less than 80 sec
-                if len(time_compare) < 80 * video0.fps:
-                    print(f'Duration is {len(time_compare) * video0.fps}')
-                    while True:
-                        flag_str = input(f'Press Enter to abort compare or y to make new compare')
-                        if len(flag_str) == 0 or i >= len(self.videos_list) + 1:
-                            shutil.rmtree(video0.folder_name)
-                            break
-                        else:
-                            if len(flag_str) > 1:
-                                # Command to skip rerunning
-                                if flag_str.startswith('go'):
-                                    pass
-                                else:
-                                    flag_str = input(f"Example\n"
-                                                     f"Only Enter\n"
-                                                     f"or\n"
-                                                     f"y\n"
-                                                     f"> ")
-                                    if flag_str == 'y':
-                                        shutil.rmtree(video0.folder_name)
-                                        self.video_slice(i, i+1)
-                                        break
-                time_compare = [time_compare[0], time_compare[0] + same_duration]
-
-                print(f'Processing slicing video {i}          ')
-                video.slice_video(time_compare)
-                db_list.append([time_compare[0], same_duration, video.folder_name])
-            break
-        shutil.rmtree(video0.folder_name)
-        print(db_list)
-        print(self.delete_list)
+                        if len(flag_str) > 1:
+                            # Command to skip rerunning
+                            if flag_str.startswith('go'):
+                                pass
+                            else:
+                                flag_str = input(f"Example\n"
+                                                 f"Only Enter\n"
+                                                 f"or\n"
+                                                 f"y\n"
+                                                 f"> ")
+                                if flag_str == 'y':
+                                    start_compare = str()
+                                    while start_compare is not int():
+                                        start_compare = int(input(f'Enter sec of start same frames in '
+                                                                  f'{self.videos_list[i]}'))
+                                    print(f'Slice video 0')
+                                    video0.slice_video([time_video0[0], time_video0[0]+video0.duration])
+                                    self.delete_list.append(self.videos_list[video_count])
+                                    self.video_cut(int(start_compare), i, reserve=2200)
+                                    break
+            print(f'Slice video {i+1} (+)')
+            video = Video_editor(self.videos_list[i])
+            video.slice_video([time_video1[0], time_video1[0] + video0.duration])
+            reserve = video0.fps * 20
+            db_list.append([time_video1[0], video0.duration, video.folder_name])
+            self.delete_list.append(self.videos_list[i])
+        print(f'Slice video 0')
+        video0.slice_video([time_video0[0], time_video0[0] + video0.duration])
+        db_list.append([time_video0[0], video0.duration, video0.folder_name])
+        self.delete_list.append(self.videos_list[video_count])
 
     def sql_commands(self):
         while self.command != '':

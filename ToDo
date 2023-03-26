@@ -3,9 +3,9 @@
 # Add automatic check all folder to terminal
 # Add test if no same frames, to find new
 # Run from terminal
-* Look at function images to video
 # Add tab to terminal
 # Delete folder with same images
+# Rewrite function to compare
 * Delete old videos
 * Add telegram bot to send when compare finished
 # Connect to DB
@@ -17,6 +17,7 @@
 * Path to win and unix through os.path
 
 * Add class image
+* Search through all selected space
 * Upscale and rename translit image
 
 
