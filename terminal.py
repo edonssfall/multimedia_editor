@@ -109,18 +109,17 @@ class Cursor:
                 start_compare = int(input(f'Enter beginning of same frames in first video '))
             self.video_cut(start_compare)
 
-    def video_cut(self, start_compare=int(), video_count=0, reserve=2200):
+    def video_cut(self, start_compare=int(), video_count=0, reserve=400):
         db_list = list()
         video0 = Video_editor(self.videos_list[video_count])
-        start_compare = start_compare * video0.fps
+        punkt = start_compare * video0.fps
+        boards_orig = [punkt, punkt + reserve]
         boards_compare = [0, (video0.total_frames * video0.fps) / 6]  # for auto recognize
         for i in range(video_count+1, len(self.videos_list)+1):
             print(f'Compare video {i+1} (+)')
             time_video0, time_video1 = video0.compare_videos(
-                self.videos_list[i], start_compare, boards_compare, reserve)
+                self.videos_list[i], boards_orig, boards_compare)
             duration = time_video1[1] - time_video1[0]
-            print(time_video0, time_video1, duration)
-            print()
             if duration < 15:
                 print(f'Duration is {len(time_video1) * video0.fps}')
                 flag_str = input(f'Press Enter to abort compare or y to make new compare >')
@@ -150,14 +149,16 @@ class Cursor:
                                     break
             print(f'Slice video {i+1} (+)')
             video = Video_editor(self.videos_list[i])
-            video.slice_video([time_video1[0], time_video1[0] + video0.duration])
-            reserve = video0.fps * 20
+            # video.slice_video([time_video1[0], time_video1[0] + video0.duration])
+            reserve = video0.fps * 10
+            boards_compare = [0, time_video1[1] * video0.fps]
             db_list.append([time_video1[0], video0.duration, video.folder_name])
             self.delete_list.append(self.videos_list[i])
         print(f'Slice video 0')
         video0.slice_video([time_video0[0], time_video0[0] + video0.duration])
         db_list.append([time_video0[0], video0.duration, video0.folder_name])
         self.delete_list.append(self.videos_list[video_count])
+        print(db_list, self.delete_list, sep='\n')
 
     def sql_commands(self):
         while self.command != '':
