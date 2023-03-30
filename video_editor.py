@@ -26,6 +26,7 @@ class Video_editor:
             treshold_video: value to compare video from 0 to 1
             threshold_mse: value to compare mse
         """
+        self.time = None
         self.reserve_time = None
         self.name = name
         self.folder_name = None
@@ -70,7 +71,8 @@ class Video_editor:
         for count in range(1, len(frames_count_list)):
             if frames_count_list[count] - frames_count_list[count - 1] >= reserve:
                 reserve = self.reserve_time
-                result.append([start, end])
+                result.append(start)
+                result.append(end)
                 start, end = frames_count_list[count], int()
             elif reserve >= 0:
                 if frames_count_list[count - 1] + 1 == frames_count_list[count]:
@@ -84,7 +86,7 @@ class Video_editor:
                 start, end = frames_count_list[count], int()
         result.append(start)
         result.append(end)
-        start, end = result[0] / self.fps, result[1] / self.fps
+        start, end = result[0] / self.fps, result[-1] / self.fps
         converted_to_time = [math.floor(start), math.ceil(end)]
         return converted_to_time
 
@@ -126,16 +128,15 @@ class Video_editor:
         else:
             return False
 
-    def compare_videos_fast(self, video_compare_name=str(), boards_orig=list(), boards_compare=list()):
+    def compare_videos_fast(self, video_name_compare=str(), boards_orig=list(), boards_compare=list()):
         """
         First compare to find same frames, and make folder with name of second seria
-        :param video_compare_name: name of compared video
+        :param video_name_compare: name of compared video
         :param boards_orig: [start, end] of orig video
         :param boards_compare: [start, end] of compared video
         :return: list of same frames orig video and second of compared [start, end], [start, end] in sec
         """
-        global_video_compare_name = f'{self.global_path}/{video_compare_name}'
-        video_orig, video_compare = cv2.VideoCapture(self.name), cv2.VideoCapture(global_video_compare_name)
+        video_orig, video_compare = cv2.VideoCapture(self.name), cv2.VideoCapture(video_name_compare)
         same_frames = list()
         frames_counter_orig, frames_counter_compare = int(), int()
         reopening, reserve_compare_flag = False, False
@@ -153,10 +154,11 @@ class Video_editor:
                     if reopening:
                         if len(same_frames) < reserve_compare:
                             reserve_compare_flag = False
+                            same_frames = list()
                         reserve_compare = self.reserve_compare
                         boards_compare[0] += 1
                         frames_counter_compare = int()
-                        video_compare = cv2.VideoCapture(global_video_compare_name)
+                        video_compare = cv2.VideoCapture(video_name_compare)
                         reopening = False
                     else:
                         while True:
@@ -174,7 +176,7 @@ class Video_editor:
                                     # Check that frames same and put flag of same frame and flag to skip reopening
                                     dif = self.difference_gray_image(frame_orig, frame_compare)
                                     if dif:
-                                        same_frames.append([frames_counter_orig, frames_counter_compare, dif])
+                                        same_frames.append([frames_counter_orig - 1, frames_counter_compare - 1])
                                         boards_compare[0] = frames_counter_compare - 1
                                         reserve_compare = self.reserve_compare
                                         reserve_compare_flag = True
@@ -185,84 +187,72 @@ class Video_editor:
                                         reserve_compare -= 1
         return same_frames
 
-    def compare_videos(self, video_compare_name=str(), boards_orig=list(), boards_compare=list()):
+    def fast_video_compare(self, video_name_compare, first_sec):
         """
-        First compare to find same frames, and make folder with name of second seria
-        :param video_compare_name: name of compared video
-        :param boards_orig: [start, end] of orig video
-        :param boards_compare: [start, end] of compared video
-        :return: list of same frames orig video and second of compared [start, end], [start, end] in sec
+        Make compare of 10sec to find difference in frames
+        :param video_name_compare: name of compared video
+        :param first_sec: start of same frames in sec
+        :return: time of same frames in compared video [start, end] in sec
         """
-        global_video_compare_name = f'{self.global_path}/{video_compare_name}'
-        video_orig, video_compare = cv2.VideoCapture(self.name), cv2.VideoCapture(global_video_compare_name)
-        same_frames_orig, same_frame_compare = list(), list()
-        frames_counter_orig, frames_counter_compare = int(), int()
-        reopening, reserve_compare_flag = False, False
-        reserve_compare = self.reserve_compare
+        global_video_name_compare = f'{self.global_path}/{video_name_compare}'
+        treshold_fast = 0.8
+        reserved_duration = 2300
+        duration = first_sec + (self.fps * 10)
+        difference = int()
+        list_compare = list()
+        boards_orig, boards_compare = [first_sec, duration], [0, self.total_frames / 5]
+        compared = self.compare_videos_fast(global_video_name_compare, boards_orig, boards_compare)
+        if len(compared) / duration >= treshold_fast:
+            for i in compared:
+                list_compare.append(i[0] - i[1])
+        for i in set(list_compare):
+            if list_compare.count(i) / duration >= treshold_fast:
+                difference = i
+        boards_orig, boards_compare = [first_sec, reserved_duration], \
+            [compared[0][1] + difference, reserved_duration + difference]
+        return self.fast_video_duration(global_video_name_compare, boards_orig, boards_compare)
+
+    def fast_video_duration(self, video_name_compare=str(), boards_orig=list(), boards_compare=list()):
+        """
+        Take arguments when know difference at make list for self and to return
+        :param video_name_compare: global name video compare
+        :param boards_orig: [start, end] now end 2300 in frames
+        :param boards_compare: [start, end] now end - difference +2300  in frames
+        :return: time in sec of compared video [start, end]
+        """
+        video_orig, video_compare = cv2.VideoCapture(self.name), cv2.VideoCapture(video_name_compare)
+        frames_counter_orig, frames_counter_compare = -1, -1
+        same_frames_orig, same_frames_compare = list(), list()
         with alive_bar(boards_orig[1]) as bar:
             while True:
-                flag_orig, frame_orig = video_orig.read()
+                ret_orig, frame_orig = video_orig.read()
                 frames_counter_orig += 1
-                if not flag_orig or frames_counter_orig > boards_orig[1]:
+                bar()
+                if not ret_orig or frames_counter_orig > boards_orig[1]:
                     break
+                elif frames_counter_orig < boards_orig[0]:
+                    continue
                 else:
-                    if frames_counter_orig - 1 < boards_orig[0] or self.check_one_color_frame(frame_orig):
-                        continue
-                    if reopening:
-                        if len(same_frames_orig) < reserve_compare:
-                            reserve_compare_flag = False
-                        reserve_compare = self.reserve_compare
-                        boards_compare[0] += 1
-                        frames_counter_compare = int()
-                        video_compare = cv2.VideoCapture(global_video_compare_name)
-                        reopening = False
-                    else:
-                        bar()
-                        while True:
-                            ret_compare, frame_compare = video_compare.read()
-                            frames_counter_compare += 1
-                            # If reserve_compare is empty or frames counter over board or no more frames in the video
-                            if not ret_compare or reserve_compare <= 0 or frames_counter_compare >= boards_compare[1]:
-                                reopening = True
-                                break
-                            else:
-                                # When once same part was found, to don't start check from the beginning
-                                if frames_counter_compare < boards_compare[0]:
-                                    continue
-                                else:
-                                    # Check that frames same and put flag of same frame and flag to skip reopening
-                                    dif = self.difference_gray_image(frame_orig, frame_compare)
-                                    if dif:
-                                        same_frames_orig.append(frames_counter_orig - 1)
-                                        same_frame_compare.append(frames_counter_compare - 1)
-                                        boards_compare[0] = frames_counter_compare - 1
-                                        reserve_compare = self.reserve_compare
-                                        reserve_compare_flag = True
-                                        reopening = False
-                                        break
-                                    # When same frame is open reserve_compare to speed up check
-                                    elif reserve_compare_flag:
-                                        reserve_compare -= 1
-        print(same_frames_orig, same_frame_compare, sep='\n')
-        time0, time1 = self.time_compared(same_frames_orig), self.time_compared(same_frame_compare)
+                    while True:
+                        ret_compare, frame_compare = video_compare.read()
+                        frames_counter_compare += 1
+                        if not ret_compare or frames_counter_compare > boards_compare[1]:
+                            break
+                        elif frames_counter_compare < boards_compare[0]:
+                            continue
+                        if self.difference_gray_image(frame_orig, frame_compare):
+                            same_frames_orig.append(frames_counter_orig)
+                            same_frames_compare.append(frames_counter_compare)
+                            break
+                        else:
+                            break
         if self.duration is None:
-            self.duration = time0[1] - time0[1]
-        print(time0, time1)
-        return time0, time1
-
-    def fast_video_compare(self, video_name_compare, first_sec):
-        treshold_fast = 0.8
-        duration = first_sec + (self.fps * 10)
-        boards_orig, boards_compare = [first_sec, duration], [0, self.total_frames / 5]
-        result, result_list = int(), list()
-        liss = self.compare_videos_fast(video_name_compare, boards_orig, boards_compare)
-        for i in liss:
-            if i[2]:
-                result += 1
-        if result / duration >= treshold_fast:
-            for i in liss:
-                dif = i[0] - i[1]
-
+            time_orig, time_compare = self.time_compared(same_frames_orig), self.time_compared(same_frames_compare)
+            self.time = time_orig
+            self.duration = time_orig[1] - time_orig[0]
+        else:
+            time_compare = self.time_compared(same_frames_compare)
+        return time_compare
 
     def slice_video(self, boards):
         """
@@ -270,7 +260,6 @@ class Video_editor:
         Delete all created files and original video #
         :param boards: [start, end] in sec
         """
-        start = time.time()
         duration = self.total_frames * self.fps
         txt_file = f'{os.getcwd()}/{self.folder_name}.txt'
         if boards[0] == 0:
@@ -292,10 +281,4 @@ class Video_editor:
             os.remove(start_video)
             os.remove(end_video)
             os.remove(txt_file)
-        # os.remove(self.name)
-        print(time.time() - start, 'time to slice')
-
-
-video0 = Video_editor('Gangsta_[01]_[AniLibria_TV]_[HDTV-Rip_720p].mkv')
-video1 = 'Gangsta_[02]_[AniLibria_TV]_[HDTV-Rip_720p].mkv'
-video0.fast_video_compare(video1, 0)
+        os.remove(self.name)

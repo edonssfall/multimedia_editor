@@ -18,8 +18,8 @@ class Cursor:
         self.path = str()
         self.cores = os.cpu_count()
         self.videos_list = list()
-        self.delete_list = list()
         self.images_list = list()
+        self.db_list = list()
         self.data_base = PostgresSQL_DataBase(dbname, user, password, host, port)
 
     def __str__(self):
@@ -108,57 +108,29 @@ class Cursor:
             while start_compare is not int():
                 start_compare = int(input(f'Enter beginning of same frames in first video '))
             self.video_cut(start_compare)
+            for values in self.db_list:
+                self.data_base.insert_db_timing('timing', values[0], values[1], values[2])
 
-    def video_cut(self, start_compare=int(), video_count=0, reserve=400):
-        db_list = list()
+    def video_cut(self, start_compare=int(), video_count=0):
         video0 = Video_editor(self.videos_list[video_count])
-        punkt = start_compare * video0.fps
-        boards_orig = [punkt, punkt + reserve]
-        boards_compare = [0, (video0.total_frames * video0.fps) / 6]  # for auto recognize
-        for i in range(video_count+1, len(self.videos_list)+1):
+        for i in range(video_count+1, len(self.videos_list)):
             print(f'Compare video {i+1} (+)')
-            time_video0, time_video1 = video0.compare_videos(
-                self.videos_list[i], boards_orig, boards_compare)
+            time_video1 = video0.fast_video_compare(self.videos_list[i], start_compare)
             duration = time_video1[1] - time_video1[0]
             if duration < 15:
                 print(f'Duration is {len(time_video1) * video0.fps}')
-                flag_str = input(f'Press Enter to abort compare or y to make new compare >')
-                while True:
-                    if len(flag_str) == 0 or i >= len(self.videos_list) + 1:
-                        pass
-                    else:
-                        if len(flag_str) > 1:
-                            # Command to skip rerunning
-                            if flag_str.startswith('go'):
-                                pass
-                            else:
-                                flag_str = input(f"Example\n"
-                                                 f"Only Enter\n"
-                                                 f"or\n"
-                                                 f"y\n"
-                                                 f"> ")
-                                if flag_str == 'y':
-                                    start_compare = str()
-                                    while start_compare is not int():
-                                        start_compare = int(input(f'Enter sec of start same frames in '
-                                                                  f'{self.videos_list[i]}'))
-                                    print(f'Slice video 0')
-                                    video0.slice_video([time_video0[0], time_video0[0]+video0.duration])
-                                    self.delete_list.append(self.videos_list[video_count])
-                                    self.video_cut(int(start_compare), i, reserve=2200)
-                                    break
+                start_compare = str()
+                while start_compare is not int():
+                    start_compare = int(input(f'Enter sec of start same frames in '
+                                              f'{self.videos_list[i]}'))
+                self.db_list.append([video0.time[0], video0.duration, video0.folder_name])
+                self.video_cut(int(start_compare), i)
+                break
             print(f'Slice video {i+1} (+)')
             video = Video_editor(self.videos_list[i])
-            # video.slice_video([time_video1[0], time_video1[0] + video0.duration])
-            reserve = video0.fps * 10
-            boards_compare = [0, time_video1[1] * video0.fps]
-            db_list.append([time_video1[0], video0.duration, video.folder_name])
-            self.delete_list.append(self.videos_list[i])
-        print(f'Slice video 0')
-        video0.slice_video([time_video0[0], time_video0[0] + video0.duration])
-        db_list.append([time_video0[0], video0.duration, video0.folder_name])
-        self.delete_list.append(self.videos_list[video_count])
-        print(db_list, self.delete_list, sep='\n')
+            video.slice_video([time_video1[0], time_video1[1]])
+            self.db_list.append([time_video1[0], video0.duration, video.folder_name])
+        self.db_list.append([video0.time[0], video0.duration, video0.folder_name])
 
     def sql_commands(self):
         while self.command != '':

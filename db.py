@@ -39,18 +39,17 @@ class PostgresSQL_DataBase:
         cursor.close()
         conn.close()
 
-    def insert_db_timing(self, table_name, *values):
+    def insert_db_timing(self, table_name, start, duration, name):
         """
         Add row in database
         :param table_name: table name
-        :param values: start, duration, name
         """
         conn = self.connection()
         cursor = conn.cursor()
         conn.autocommit = True
-        placeholders = ','.join(['%s'] * len(values))
-        insert_query = f"INSERT INTO {table_name} (START, DURATION, NAME) VALUES ({placeholders})"
-        cursor.execute(insert_query, values)
+        name = name.replace('_', '').replace('[', '').replace(']', '')
+        cursor.execute(f"INSERT INTO {table_name} (START, DURATION, NAME, YEAR)"
+                       f"VALUES ({start}, {duration}, {name});")
         conn.commit()
         cursor.close()
         conn.close()
@@ -67,6 +66,6 @@ class PostgresSQL_DataBase:
                     print(row)
             except:
                 print('Something wrong')
-            sql_console = input('>')
+            sql_console = input('> ')
         cursor.close()
         conn.close()

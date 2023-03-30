@@ -5,8 +5,8 @@
 # Run from terminal
 # Add tab to terminal
 # Delete folder with same images
-# Rewrite function to compare
-* Delete old videos
+## Rewrite function to compare
+# Delete old videos
 * Add telegram bot to send when compare finished
 # Connect to DB
 * Autofill db with made work

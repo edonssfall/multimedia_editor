@@ -1,3 +1,6 @@
+v0.2.3
+    -new method of compare
+    -tested with old anime
 v0.2.2
     -find problems in compare_video
     -write new method to make faster
