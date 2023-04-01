@@ -25,31 +25,48 @@ class PostgresSQL_DataBase:
         )
         return connection
 
+    def create_table(self, tabel_name):
+        conn = self.connection()
+        cursor = conn.cursor()
+        conn.autocommit = True
+        cursor.execute(f"""
+            CREATE TABLE IF NOT EXISTS {tabel_name} (
+            id SERIAL PRIMARY KEY,
+            name TEXT NOT NULL,
+            start_point INTEGER,
+            duration INTEGER)
+                        """)
+        cursor.close()
+        conn.close()
+
     def get_tables(self):
         """
         See all tables in DB
         """
         conn = self.connection()
         cursor = conn.cursor()
-        cursor.execute(
-            "SELECT table_name FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE';")
+        cursor.execute("""
+            SELECT table_name FROM information_schema.tables 
+            WHERE table_schema='public' AND table_type='BASE TABLE';
+                        """)
         rows = cursor.fetchall()
         for row in rows:
             print(row[0], end='\n\n')
         cursor.close()
         conn.close()
 
-    def insert_db_timing(self, table_name, start, duration, name):
+    def insert_db_timing(self, timing_values):
         """
         Add row in database
-        :param table_name: table name
+        :param timing_values: [start point, duration, name]
         """
         conn = self.connection()
         cursor = conn.cursor()
         conn.autocommit = True
-        name = name.replace('_', '').replace('[', '').replace(']', '')
-        cursor.execute(f"INSERT INTO {table_name} (START, DURATION, NAME, YEAR)"
-                       f"VALUES ({start}, {duration}, {name});")
+        cursor.execute(f"""
+            INSERT INTO timing (start_point, duration, name) 
+            VALUES (%s, %s, %s)
+                       """, timing_values)
         conn.commit()
         cursor.close()
         conn.close()
@@ -64,8 +81,8 @@ class PostgresSQL_DataBase:
                 cursor.execute(sql_console)
                 for row in cursor.fetchall():
                     print(row)
-            except:
-                print('Something wrong')
+            except psycopg2.Error as error:
+                print(f'The error: {error} occurred')
             sql_console = input('> ')
         cursor.close()
         conn.close()

@@ -9,7 +9,7 @@
 # Delete old videos
 * Add telegram bot to send when compare finished
 # Connect to DB
-* Autofill db with made work
+# Autofill db with made work
 * Add extract subtitle
 * Add metadata to videos
 * Add in subtitles another language

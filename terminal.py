@@ -105,11 +105,11 @@ class Cursor:
         # Slice video
         elif self.command.startswith('-vs'):
             start_compare = str()
-            while start_compare is not int():
-                start_compare = int(input(f'Enter beginning of same frames in first video '))
-            self.video_cut(start_compare)
+            while not start_compare.isdigit():
+                start_compare = input(f'Enter beginning of same frames in first video ')
+            self.video_cut(int(start_compare))
             for values in self.db_list:
-                self.data_base.insert_db_timing('timing', values[0], values[1], values[2])
+                self.data_base.insert_db_timing(values)
 
     def video_cut(self, start_compare=int(), video_count=0):
         video0 = Video_editor(self.videos_list[video_count])
