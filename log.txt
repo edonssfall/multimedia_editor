@@ -1,3 +1,6 @@
+v0.2.5
+    -some test made
+    -correction in code
 v0.2.4
     -autofill db ready, need more datas
     -some correction in code

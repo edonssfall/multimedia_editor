@@ -5,16 +5,19 @@
 # Run from terminal
 # Add tab to terminal
 # Delete folder with same images
-## Rewrite function to compare
+### Rewrite function to compare
 # Delete old videos
-* Add telegram bot to send when compare finished
 # Connect to DB
 # Autofill db with made work
+* Add command to stop compare this video and go to next
+* Add year to database and parse anime that i have
 * Add extract subtitle
 * Add metadata to videos
 * Add in subtitles another language
 * Upscale video
+* Add telegram bot to send when compare finished
 * Path to win and unix through os.path
+
 
 * Add class image
 * Search through all selected space

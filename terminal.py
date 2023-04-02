@@ -19,7 +19,6 @@ class Cursor:
         self.cores = os.cpu_count()
         self.videos_list = list()
         self.images_list = list()
-        self.db_list = list()
         self.data_base = PostgresSQL_DataBase(dbname, user, password, host, port)
 
     def __str__(self):
@@ -61,7 +60,7 @@ class Cursor:
         """
         usb_device_array = self.hard_driver_list()
         while self.command not in usb_device_array:
-            self.command = input(f"Enter a number of hard driver or Enter to cancel$ ")
+            self.command = input(f"Enter a number of hard driver or Enter to cancel> ")
             if not self.command.isdigit():
                 continue
             try:
@@ -69,7 +68,7 @@ class Cursor:
                 self.path = f'/media/{self.username}/{self.command}/'
                 os.chdir(self.path)
             except FileNotFoundError or NotADirectoryError or PermissionError:
-                self.command = input(f'Enter index of disk or Enter to cancel$ ')
+                self.command = input(f'Enter index of disk or Enter to cancel> ')
 
     def basic_location(self):
         """
@@ -106,31 +105,30 @@ class Cursor:
         elif self.command.startswith('-vs'):
             start_compare = str()
             while not start_compare.isdigit():
-                start_compare = input(f'Enter beginning of same frames in first video ')
+                start_compare = input(f'Enter beginning of same frames in first video> ')
             self.video_cut(int(start_compare))
-            for values in self.db_list:
-                self.data_base.insert_db_timing(values)
 
     def video_cut(self, start_compare=int(), video_count=0):
         video0 = Video_editor(self.videos_list[video_count])
         for i in range(video_count+1, len(self.videos_list)):
-            print(f'Compare video {i+1} (+)')
+            print(f'Work with {self.videos_list[i]}')
+            print(f'Compare video(+)')
             time_video1 = video0.fast_video_compare(self.videos_list[i], start_compare)
             duration = time_video1[1] - time_video1[0]
             if duration < 15:
                 print(f'Duration is {len(time_video1) * video0.fps}')
                 start_compare = str()
-                while start_compare is not int():
-                    start_compare = int(input(f'Enter sec of start same frames in '
-                                              f'{self.videos_list[i]}'))
-                self.db_list.append([video0.time[0], video0.duration, video0.folder_name])
+                while not start_compare.isdigit():
+                    start_compare = input(f'Enter sec of start same frames in '
+                                          f'{self.videos_list[i]}> ')
+                self.data_base.insert_db_timing([video0.time[0], video0.duration, video0.folder_name])
                 self.video_cut(int(start_compare), i)
                 break
-            print(f'Slice video {i+1} (+)')
+            print(f'Slice video(+)')
             video = Video_editor(self.videos_list[i])
             video.slice_video([time_video1[0], time_video1[1]])
-            self.db_list.append([time_video1[0], video0.duration, video.folder_name])
-        self.db_list.append([video0.time[0], video0.duration, video0.folder_name])
+            self.data_base.insert_db_timing([time_video1[0], duration, video.folder_name])
+        self.data_base.insert_db_timing([video0.time[0], video0.duration, video0.folder_name])
 
     def sql_commands(self):
         while self.command != '':
