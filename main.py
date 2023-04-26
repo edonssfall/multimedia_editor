@@ -1,4 +1,5 @@
-from terminal import *
+from terminal import Cursor
+import os
 import readline
 
 
@@ -57,4 +58,3 @@ if __name__ == '__main__':
         readline.set_completer(completer)
 
         bash.command = input(bash)
-

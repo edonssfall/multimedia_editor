@@ -1,6 +1,8 @@
-import shutil
-from video_editor import *
-from db import *
+import os
+import numpy as np
+from video_editor import VideoEditor
+#from db import PostgresSQL_DataBase
+from platform import system
 from keys import *
 
 
@@ -12,14 +14,14 @@ class Cursor:
     """
 
     def __init__(self):
-        self.start_direction = os.getcwd()[:os.getcwd()[7:].find('/') + 8]
-        self.username = self.start_direction[6:-1]
+        #self.data_base = PostgresSQL_DataBase(dbname, user, password, host, port)
+        self.system = system()
+        self.system_usb_path = None
+        self.home_direction = os.path.expanduser('~')
+        self.username = os.getlogin()
         self.command = " "
         self.path = str()
-        self.cores = os.cpu_count()
         self.videos_list = list()
-        self.images_list = list()
-        self.data_base = PostgresSQL_DataBase(dbname, user, password, host, port)
 
     def __str__(self):
         """
@@ -31,7 +33,7 @@ class Cursor:
         """
         Move between folders
         """
-        self.path = f"{os.getcwd()}/{self.command[self.command.find('cd') + 3:]}/"
+        self.path = os.path.join(os.getcwd(), self.command[self.command.find('cd') + 3:])
         try:
             os.chdir(self.path)
         except FileNotFoundError:
@@ -41,11 +43,20 @@ class Cursor:
         except PermissionError:
             print(f"You don't have permission to change to {self.path}")
 
+    def usb_global_path(self):
+        if self.system == "Windows":
+            self.system_usb_path = "/Volumes/"
+        elif self.system == "Linux":
+            self.system_usb_path = "/media/"
+        elif self.system == "Darwin":
+            self.system_usb_path = "/media/"
+        #self.system_usb_path = os.path.join(self.system_usb_path, self.username)
+
     def hard_driver_list(self):
         """
         -d :Show list of connected devices
         """
-        usb_device_array = np.array(os.listdir(f'/media/{self.username}'))
+        usb_device_array = np.array(os.listdir(os.path.join(self.system_usb_path, self.username)))
         if usb_device_array is not []:
             for i, disk in enumerate(usb_device_array):
                 print(i, disk)
@@ -65,7 +76,7 @@ class Cursor:
                 continue
             try:
                 self.command = usb_device_array[int(self.command)]
-                self.path = f'/media/{self.username}/{self.command}/'
+                self.path = os.path.join(self.system_usb_path, self.command)
                 os.chdir(self.path)
             except FileNotFoundError or NotADirectoryError or PermissionError:
                 self.command = input(f'Enter index of disk or Enter to cancel> ')
@@ -74,7 +85,7 @@ class Cursor:
         """
         Move to home folder
         """
-        os.chdir(self.start_direction)
+        os.chdir(self.home_direction)
         self.path = os.getcwd()
 
     def bash_commands(self):
@@ -94,7 +105,7 @@ class Cursor:
                 self.videos_list.append(files_list[i])
         # Video info from first
         if self.command.startswith('-vi'):
-            video0 = Video_editor(self.videos_list[0])
+            video0 = VideoEditor(self.videos_list[0])
             print(
                 f"\nName: {video0.folder_name}\n"
                 f"Duration: {video0.fps * video0.total_frames}.sec\n"
@@ -109,7 +120,7 @@ class Cursor:
             self.video_cut(int(start_compare))
 
     def video_cut(self, start_compare=int(), video_count=0):
-        video0 = Video_editor(self.videos_list[video_count])
+        video0 = VideoEditor(self.videos_list[video_count])
         for i in range(video_count+1, len(self.videos_list)):
             print(f'Work with {self.videos_list[i]}')
             print(f'Compare video(+)')
@@ -125,7 +136,7 @@ class Cursor:
                 self.video_cut(int(start_compare), i)
                 break
             print(f'Slice video(+)')
-            video = Video_editor(self.videos_list[i])
+            video = VideoEditor(self.videos_list[i])
             video.slice_video([time_video1[0], time_video1[1]])
             self.data_base.insert_db_timing([time_video1[0], duration, video.folder_name])
         self.data_base.insert_db_timing([video0.time[0], video0.duration, video0.folder_name])

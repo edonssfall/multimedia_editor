@@ -10,9 +10,10 @@
 # Connect to DB
 # Autofill db with made work
 * Add command to stop compare this video and go to next
-* Add year to database and parse anime that i have
+# Add year to database and parse anime that i have
+* Add more columns to db
 * Add extract subtitle
-* Add metadata to videos
+* Add  add metadata to videos
 * Add in subtitles another language
 * Upscale video
 * Add telegram bot to send when compare finished

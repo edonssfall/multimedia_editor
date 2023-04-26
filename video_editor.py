@@ -5,7 +5,7 @@ import numpy as np
 from alive_progress import alive_bar
 
 
-class Video_editor:
+class VideoEditor:
     """
     Class vido file
     Method compare_videos take 2 arguments:
@@ -17,7 +17,7 @@ class Video_editor:
         return nothing, just make new video and delete old
     """
 
-    def __init__(self, name=str(), threshold_one_color=10, treshold_video=0.8, threshold_mse=40, threshold_fast=0.8):
+    def __init__(self, name=str(), threshold_one_color=10, treshold_video=0.8, threshold_mse=40, threshold_fast=0.7):
         """
         :param name: name of video file
         :param threshold_one_color: value to skip images all one color(standard=10)
@@ -25,13 +25,12 @@ class Video_editor:
         :param threshold_mse: value to compare mse(standard=40)
         :param threshold_fast: value for % of same frames (standard=0.8)
         """
+        self.name = name
         self.time = None
         self.reserve_time = None
-        self.name = name
         self.folder_name = None
         self.video = None
         self.fps = None
-        self.resolution = None
         self.total_frames = None
         self.global_path = None
         self.duration = None
@@ -138,6 +137,7 @@ class Video_editor:
         :return: time of same frames in compared video [start, end] in sec
         """
         first_sec = first_sec * self.fps
+        # here change to universal
         global_video_name_compare = f'{self.global_path}/{video_name_compare}'
         duration = first_sec + (self.fps * 10)
         difference = int()

@@ -1,8 +1,10 @@
 /.idea/
 /venv/
+/.env/
 /__pycache__/
 *.mkv
 *.mp4
 *.jpg
+*.png
 keys.py
 test.py
