@@ -11,7 +11,7 @@ project_dir = os.environ['WORK_DIRECTORY']
 class TestVideoEditor(TestCase):
 
     def setUp(self) -> None:
-        with open(f"{project_dir}test/resources/video_editor/test_video_editor.json", "r") as file:
+        with open(f"{project_dir}tests/resources/video_editor/test_video_editor.json", "r") as file:
             self.json_test = json.load(file)
         self.video0 = f'{project_dir}tests/resources/video_editor/test_video_0.mp4'
         self.video1 = f'{project_dir}tests/resources/video_editor/test_video_1.mp4'
@@ -19,6 +19,7 @@ class TestVideoEditor(TestCase):
         self.video_editor1 = VideoEditor(self.video1)
 
     def test_get_video_data(self):
+        print(self.video_editor.short_name)
         self.assertTrue(self.video_editor.short_name == 'test_video_0')
         self.assertTrue(self.video_editor.fps == 30)
         self.assertTrue(self.video_editor.resolution == 714)

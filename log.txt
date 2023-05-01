@@ -1,3 +1,5 @@
+v0.3.1.1
+    -small corrections in short_name
 v0.3.1
     -create one json file
     -some changes in folders

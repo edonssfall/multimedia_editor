@@ -45,11 +45,7 @@ class VideoEditor:
         Delete in string name format
         """
         video = cv2.VideoCapture(self.name)
-        if '/' in self.name or '\\' in self.name:
-            if '\\' in self.name:
-                self.short_name = self.name[self.name.rfind('\\')+1:self.name.rfind('.')]
-            else:
-                self.short_name = self.name[self.name.rfind('/')+1:self.name.rfind('.')]
+        self.short_name = os.path.splitext(os.path.basename(self.name))[0]
         self.fps = round(video.get(cv2.CAP_PROP_FPS))
         self.resolution = round(video.get(cv2.CAP_PROP_FRAME_HEIGHT))
         self.total_frames = round(video.get(cv2.CAP_PROP_FRAME_COUNT))
