@@ -1,3 +1,10 @@
+v0.3.0
+    -add tests to video editor
+    -add video-file
+    -add json files
+    -compelete with global paths
+    -sorted files in folders
+    -make different file for compare frames functions
 v0.2.6
     -change to global path universal
     -need to test it

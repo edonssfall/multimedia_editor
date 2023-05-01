@@ -1,9 +1,11 @@
 import os
 import numpy as np
-from video_editor import VideoEditor
-#from db import PostgresSQL_DataBase
+from video_system.video_editor import VideoEditor
+from db import PostgresSQL_DataBase
 from platform import system
-from keys import *
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 class Cursor:
@@ -12,9 +14,14 @@ class Cursor:
     -d : Show all USB Devices
     /d : Function to chose one USB device and move there
     """
-
     def __init__(self):
-        #self.data_base = PostgresSQL_DataBase(dbname, user, password, host, port)
+        self.data_base = PostgresSQL_DataBase(
+            dbname= os.environ['DB_NAME'],
+            user= os.environ['DB_USER'],
+            password= os.environ['DB_PASSWORD'],
+            host= os.environ['DB_HOST'],
+            port= os.environ['DB_PORT']
+        )
         self.system = system()
         self.system_usb_path = None
         self.home_direction = os.path.expanduser('~')
@@ -43,20 +50,17 @@ class Cursor:
         except PermissionError:
             print(f"You don't have permission to change to {self.path}")
 
-    def usb_global_path(self):
-        if self.system == "Windows":
-            self.system_usb_path = "/Volumes/"
-        elif self.system == "Linux":
-            self.system_usb_path = "/media/"
-        elif self.system == "Darwin":
-            self.system_usb_path = "/media/"
-        #self.system_usb_path = os.path.join(self.system_usb_path, self.username)
-
     def hard_driver_list(self):
         """
         -d :Show list of connected devices
         """
-        usb_device_array = np.array(os.listdir(os.path.join(self.system_usb_path, self.username)))
+        if self.system == "Windows":
+            self.system_usb_path = "/Volumes/"
+        elif self.system == "Linux":
+            self.system_usb_path = f"/media/{self.username}/"
+        elif self.system == "Darwin":
+            self.system_usb_path = "/Volumes/"
+        usb_device_array = np.array(os.listdir(self.system_usb_path))
         if usb_device_array is not []:
             for i, disk in enumerate(usb_device_array):
                 print(i, disk)
@@ -70,7 +74,7 @@ class Cursor:
         Choose device just by its number
         """
         usb_device_array = self.hard_driver_list()
-        while self.command not in usb_device_array:
+        while self.command != "":
             self.command = input(f"Enter a number of hard driver or Enter to cancel> ")
             if not self.command.isdigit():
                 continue
@@ -107,7 +111,7 @@ class Cursor:
         if self.command.startswith('-vi'):
             video0 = VideoEditor(self.videos_list[0])
             print(
-                f"\nName: {video0.folder_name}\n"
+                f"\nName: {video0.short_name}\n"
                 f"Duration: {video0.fps * video0.total_frames}.sec\n"
                 f"FPS: {video0.fps}\n"
                 f"Resolution: {video0.resolution}\n"
@@ -124,7 +128,7 @@ class Cursor:
         for i in range(video_count+1, len(self.videos_list)):
             print(f'Work with {self.videos_list[i]}')
             print(f'Compare video(+)')
-            time_video1 = video0.fast_video_compare(self.videos_list[i], start_compare)
+            time_video1 = video0.main_compare_func(self.videos_list[i], start_compare)
             duration = time_video1[1] - time_video1[0]
             if duration < 15:
                 print(f'Duration is {len(time_video1) * video0.fps}')
@@ -132,14 +136,14 @@ class Cursor:
                 while not start_compare.isdigit():
                     start_compare = input(f'Enter sec of start same frames in '
                                           f'{self.videos_list[i]}> ')
-                self.data_base.insert_db_timing([video0.time[0], video0.duration, video0.folder_name])
+                self.data_base.insert_db_timing([video0.time[0], video0.duration, video0.short_name])
                 self.video_cut(int(start_compare), i)
                 break
             print(f'Slice video(+)')
             video = VideoEditor(self.videos_list[i])
             video.slice_video([time_video1[0], time_video1[1]])
-            self.data_base.insert_db_timing([time_video1[0], duration, video.folder_name])
-        self.data_base.insert_db_timing([video0.time[0], video0.duration, video0.folder_name])
+            self.data_base.insert_db_timing([time_video1[0], duration, video.short_name])
+        self.data_base.insert_db_timing([video0.time[0], video0.duration, video0.short_name])
 
     def sql_commands(self):
         while self.command != '':
