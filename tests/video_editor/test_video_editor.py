@@ -11,8 +11,10 @@ project_dir = os.environ['WORK_DIRECTORY']
 class TestVideoEditor(TestCase):
 
     def setUp(self) -> None:
-        self.video0 = f'{project_dir}tests/resources/video_editor/test_videos/test_video_0.mp4'
-        self.video1 = f'{project_dir}tests/resources/video_editor/test_videos/test_video_1.mp4'
+        with open(f"{project_dir}test/resources/video_editor/test_video_editor.json", "r") as file:
+            self.json_test = json.load(file)
+        self.video0 = f'{project_dir}tests/resources/video_editor/test_video_0.mp4'
+        self.video1 = f'{project_dir}tests/resources/video_editor/test_video_1.mp4'
         self.video_editor = VideoEditor(self.video0)
         self.video_editor1 = VideoEditor(self.video1)
 
@@ -27,16 +29,13 @@ class TestVideoEditor(TestCase):
 
     def test_time_compare(self):
         time_result = [[2, 10], [15, 24]]
-        with open(f"{project_dir}tests/resources/video_editor/test_jsons/test_time_compare.json", "r") as file:
-            time_compare = json.load(file)
-        self.assertTrue(self.video_editor.time_find_one_paar(time_compare) == time_result[0])
+        self.assertTrue(self.video_editor.time_find_one_paar(self.json_test['test_time_compare']) == time_result[0])
 
     def test_compare_videos_fast_same(self):
-        with open(f"{project_dir}tests/resources/video_editor/test_jsons/result_same_video0.json", "r") as test_result0:
-            test_result0 = json.load(test_result0)
         self.assertTrue(self.video_editor.compare_videos_fast(
-            self.video0, [0, self.video_editor.total_frames], [0, self.video_editor.total_frames]) == test_result0
-                        )
+            self.video0, [0, self.video_editor.total_frames], [0, self.video_editor.total_frames])
+                        == self.json_test['result_same_video0']
+        )
 
     def test_compare_videos_fast_different(self):
         print(self.video_editor.compare_videos_fast(self.video1,
