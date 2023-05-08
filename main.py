@@ -1,4 +1,4 @@
-from terminal import Cursor
+from classes.Terminal import Cursor
 import os
 import readline
 
