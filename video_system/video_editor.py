@@ -32,7 +32,7 @@ class VideoEditor:
         self.duration = None
         self.reserve_compare = None
         self.reserve_duration = None
-        self.treshold = threshold
+        self.threshold = threshold
         self.get_video_data()
 
     def get_video_data(self) -> None:
@@ -231,7 +231,7 @@ class VideoEditor:
             list_compare.append(i[0] - i[1])
         # If enough same frames, more than 70% as default
         for i in set(list_compare):
-            if list_compare.count(i) / duration >= self.treshold:
+            if list_compare.count(i) / duration >= self.threshold:
                 difference = i
         # Make boards for second func, to find end of same frames
         boards_orig, boards_compare = [first_sec, first_sec + self.reserve_duration], \
@@ -292,7 +292,7 @@ class VideoEditor:
             (
                 ffmpeg
                 .concat(
-                    (ffmpeg.input(self.name, ss=boards[0])),
+                    (ffmpeg.input(self.name, to=boards[0])),
                     (ffmpeg.input(self.name, ss=boards[1]))
                 )
                 .output(f"{self.short_name}_edonssfall.mkv", vcodec='libx264', acodec='aac', t=duration)

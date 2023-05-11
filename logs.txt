@@ -1,3 +1,7 @@
+v0.3.3
+    -add func to create test videos with black screen
+    -fix for ffmpeg in video_redactor
+    -add ffmpeg to requirements.txt
 v0.3.2
     -add multi thread for ffmpeg slice
     -edit description for func
