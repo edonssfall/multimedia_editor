@@ -110,6 +110,7 @@ class Cursor:
 
     def video_cut(self, start_compare=int(), video_count=0):
         # TODO: to make only one func after first to compares
+        # TODO: create for proverku for more then oe opening
         video0 = VideoEditor(self.videos_list[video_count])
         for i in range(video_count+1, len(self.videos_list)):
             print(f'Work with {self.videos_list[i]}')
@@ -126,6 +127,7 @@ class Cursor:
                 break
             video = VideoEditor(self.videos_list[i])
             self.video_slice[video] = [time_video1[0], time_video1[1]]
+            os.remove(video.name)
             self.data_base.insert_db_timing([time_video1[0], duration, video.short_name])
         self.data_base.insert_db_timing([video0.time[0], video0.duration, video0.short_name])
 
@@ -154,7 +156,7 @@ class Cursor:
                 f"\nName: {video0.short_name}\n"
                 f"Duration: {video0.fps * video0.total_frames}.sec\n"
                 f"FPS: {video0.fps}\n"
-                f"Resolution: {video0.resolution}\n"
+                f"Resolution: {video0.height}\n"
             )
         # Slice video
         elif self.command.startswith('-vs'):

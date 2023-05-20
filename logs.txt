@@ -1,3 +1,9 @@
+v0.3.4
+    -create test for slice
+    -edit more test for test_time_one_par
+    -make remove file in Terminal
+    -some adds in compare_videos_fast(now in test not work)
+    -change test_videos
 v0.3.3
     -add func to create test videos with black screen
     -fix for ffmpeg in video_redactor

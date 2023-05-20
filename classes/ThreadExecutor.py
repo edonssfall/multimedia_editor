@@ -6,7 +6,7 @@ def run_command(command):
 
 
 class FFMpegThreads:
-    def __init__(self, max_workers=3):
+    def __init__(self, max_workers=5):
         self.max_workers = max_workers
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=max_workers)
         self.futures = []

@@ -22,7 +22,8 @@ class VideoEditor:
         :param name: name of video file
         """
         self.name = name
-        self.resolution = None
+        self.height = None
+        self.width = None
         self.time = None
         self.reserve_time_compare = None
         self.short_name = None
@@ -45,10 +46,11 @@ class VideoEditor:
         video = cv2.VideoCapture(self.name)
         self.short_name = os.path.splitext(os.path.basename(self.name))[0]
         self.fps = round(video.get(cv2.CAP_PROP_FPS))
-        self.resolution = round(video.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        self.height = round(video.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        self.width = round(video.get(cv2.CAP_PROP_FRAME_WIDTH))
         self.total_frames = round(video.get(cv2.CAP_PROP_FRAME_COUNT))
         self.reserve_compare = self.fps * 2
-        self.reserve_time_compare = self.fps * 5
+        self.reserve_time_compare = self.fps * 6
         self.reserve_duration = self.fps * 100
 
     def time_compare(self, frames_count_list: list) -> list:
@@ -84,7 +86,6 @@ class VideoEditor:
         return converted_to_time
 
     def time_find_one_par(self, frames_count_list: list) -> list:
-        # TODO: edit this func to can skip release
         """
         easier time compare to find one paar of time
         take list of frames
@@ -124,15 +125,16 @@ class VideoEditor:
                     if frames_counter_orig < boards_orig[0]:
                         continue
                     # Skip if frame all one color
-                    if compare_frames.check_one_color_frame(frame_orig):
+                    elif compare_frames.check_one_color_frame(frame_orig):
                         bar()
                         continue
                     # Reopen compared video, to begin from the start find same frames
                     # Compares board-start + 1
                     # Compare frames counter to zero
-                    if reopening:
+                    elif reopening:
                         # if it finds less than 1 sec of same frames
                         if len(same_frames) <= self.fps * 1:
+                            same_frames = list()
                             reserve_compare_flag = False
                         reserve_compare = self.reserve_compare
                         boards_compare[0] += 1
@@ -195,7 +197,7 @@ class VideoEditor:
                             break
                         elif frames_counter_compare < boards_compare[0]:
                             continue
-                        if compare_frames.difference_gray_image(frame_orig, frame_compare):
+                        elif compare_frames.difference_gray_image(frame_orig, frame_compare):
                             same_frames_orig.append(frames_counter_orig)
                             same_frames_compare.append(frames_counter_compare)
                             break
@@ -205,7 +207,6 @@ class VideoEditor:
 
     def main_compare_func(self, video_name_compare: str, first_sec: int) -> list:
         # TODO: find in first paar time and so on, for next time use only one function
-        #  and add self.time to same frames[0]
         """
         Make compare of 10sec to find difference in frames
         :param video_name_compare: name of compared video
@@ -251,18 +252,13 @@ class VideoEditor:
         return time_compared
 
     def slice_video(self, boards: list) -> None:
-        # TODO: make tests to check how it slice
+        # TODO: keep format of video
         """
         Take [start, end] and cutout this part
         Delete all created files and original video
         :param boards: [start, end] in sec
         """
         duration = self.total_frames * self.fps
-        # If same frames from first sec, make only one func, add _edonssfall at end
-        # txt_file = f'{self.short_name}.txt'
-        # if boards[0] == 0:
-        #     os.system(f"ffmpeg -i {self.name} -ss {boards[1]} -c:v libx264 -c:a aac -t "
-        #               f"{duration} {self.short_name}_edonssfall.mkv >/dev/null 2>&1")
         if boards[0] == 0:
             (
                 ffmpeg
@@ -271,23 +267,6 @@ class VideoEditor:
                 .overwrite_output()
                 .run()
             )
-        # If same frames not from 0 sec, slice 2 video and concatenate them, add _edonssfall at end
-        # else:
-        #     start_video, end_video = f'start_{self.name}', f'end_{self.name}'
-        #     os.system(f"ffmpeg -i {self.name} -ss 0 -c:v libx264 -c:a aac -t {boards[0]} {start_video} "
-        #               f">/dev/null 2>&1")
-        #     os.system(f"ffmpeg -i {self.name} -ss {boards[1]} -c:v libx264 -c:a aac -t {duration} {end_video} "
-        #               f">/dev/null 2>&1")
-        #     if not os.path.isfile(txt_file):
-        #         os.system(f'touch {txt_file}')
-        #     with open(txt_file, 'r+') as file:
-        #         file.write(f"file 'start_{self.name}'\n"
-        #                    f"file 'end_{self.name}'")
-        #     os.system(f"ffmpeg -f concat -safe 0 -i {txt_file} -c copy {self.short_name}_edonssfall.mkv "
-        #               f">/dev/null 2>&1")
-        #     os.remove(start_video)
-        #     os.remove(end_video)
-        #     os.remove(txt_file)
         else:
             (
                 ffmpeg
@@ -299,5 +278,3 @@ class VideoEditor:
                 .overwrite_output()
                 .run()
             )
-        # Remove original video
-        os.remove(self.name)
