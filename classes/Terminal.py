@@ -110,7 +110,7 @@ class Cursor:
 
     def video_cut(self, start_compare=int(), video_count=0):
         # TODO: to make only one func after first to compares
-        # TODO: create for proverku for more then oe opening
+        # TODO: create for test for more then one opening
         video0 = VideoEditor(self.videos_list[video_count])
         for i in range(video_count+1, len(self.videos_list)):
             print(f'Work with {self.videos_list[i]}')

@@ -23,8 +23,6 @@ class TestVideoEditor(TestCase):
 
     def setUp(self) -> None:
         # TODO: edit 3 videos with different params and edit json with this params:
-        #  [nothing, same_frames]
-        #  [same_frames, nothing, same_frames]
         #  [same frames, nothing]
         with open(f"{project_dir}tests/resources/video_editor/test_video_editor.json", "r") as file:
             self.json_test = json.load(file)
@@ -39,13 +37,16 @@ class TestVideoEditor(TestCase):
         self.mid_test_start = 15
 
     def test_get_video_data(self):
-        self.assertTrue(self.video_editor.short_name == 'test_video_0')
+        video_name, video_format = os.path.splitext(os.path.basename(self.video0))
+        self.assertTrue(self.video_editor.short_name == video_name)
+        self.assertTrue(self.video_editor.global_path == f"{project_dir}tests/resources/video_editor/")
+        self.assertTrue(self.video_editor.format == video_format)
         self.assertTrue(self.video_editor.fps == 30)
         self.assertTrue(self.video_editor.height == 714)
         self.assertTrue(self.video_editor.width == 1280)
         self.assertTrue(self.video_editor.total_frames == 899)
         self.assertTrue(self.video_editor.reserve_compare == 60)
-        self.assertTrue(self.video_editor.reserve_time_compare == 150)
+        self.assertTrue(self.video_editor.reserve_time_compare == 180)
         self.assertTrue(self.video_editor.reserve_duration == 3000)
 
     def create_start_video(self):
@@ -83,30 +84,30 @@ class TestVideoEditor(TestCase):
             .run()
         )
 
-    def test_start_video(self):
+    def test_compare_videos_fast_start_video(self):
         # Create video with 5 sec black screen at start
         if not os.path.exists(self.video_start_test):
             self.create_start_video()
-        print(self.video_editor.compare_videos_fast(self.video_start_test,
-                                                    [0, self.video_editor.total_frames],
-                                                    [0, VideoEditor(self.video_start_test).total_frames]
-                                                    ))
+        self.assertTrue(self.video_editor.compare_videos_fast(self.video_start_test,
+                                                              [0, self.video_editor.total_frames],
+                                                              [0, VideoEditor(self.video_start_test).total_frames])
+                        == self.json_test["result_compare_videos_fast_start_video_0"])
 
-    def test_create_mid_video(self):
+    def test_compare_videos_fast_mid_video(self):
         # Create video with 5 sec black screen in mid
         if not os.path.exists(self.video_mid_test):
             self.create_mid_video()
-        print(self.video_editor.compare_videos_fast(self.video_mid_test,
-                                                    [0, self.video_editor.total_frames],
-                                                    [0, VideoEditor(self.video_mid_test).total_frames]
-                                                    ))
+        self.assertTrue(self.video_editor.compare_videos_fast(self.video_mid_test,
+                                                              [0, self.video_editor.total_frames],
+                                                              [0, VideoEditor(self.video_mid_test).total_frames])
+                        == self.json_test["result_compare_videos_fast_mid_video_0"])
 
-    def test_create_end_video(self):
+    def test_compare_videos_fast_end_video(self):
         # Create video with 5 sec black screen at end
         if os.path.exists(self.video_end_test):
             self.create_end_video()
 
-    def test_time_compare(self):
+    def test_time_fine_one_par(self):
         time_result = [[2, 10], [0, 9], [15, 24]]
         self.assertTrue(self.video_editor.time_find_one_par(self.json_test['test_time_compare_0']) == time_result[0])
         self.assertTrue(self.video_editor.time_find_one_par(self.json_test['test_time_compare_1']) == time_result[1])
@@ -119,17 +120,18 @@ class TestVideoEditor(TestCase):
                         )
 
     def test_slice_video(self):
+        # TODO: Find another way to different them(use exist my method to fast compare videos)
         if not os.path.exists(self.video_start_test):
             self.create_start_video()
         VideoEditor(self.video_start_test).slice_video([0, self.black_screen_duration])
-        self.assertTrue(compute_hash(
-            f"{project_dir}tests/video_editor/test_start_video_0_edonssfall.mkv") == compute_hash(self.video0)
+        print(compute_hash(
+            f"{project_dir}tests/resources/video_editor/test_start_video_0_edonssfall.mp4") == compute_hash(self.video0)
                         )
         if not os.path.exists(self.video_mid_test):
             self.create_mid_video()
         VideoEditor(self.video_mid_test).slice_video(
             [self.mid_test_start, self.mid_test_start + self.black_screen_duration]
         )
-        self.assertTrue(compute_hash(
-            f"{project_dir}tests/video_editor/test_mid_video_0_edonssfall.mkv") == compute_hash(self.video0)
+        print(compute_hash(
+            f"{project_dir}tests/resources/video_editor/test_mid_video_0_edonssfall.mp4") == compute_hash(self.video0)
                         )
