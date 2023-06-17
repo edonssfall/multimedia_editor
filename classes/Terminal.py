@@ -3,7 +3,7 @@ import numpy as np
 from platform import system
 from dotenv import load_dotenv
 
-from video_system.video_editor import VideoEditor
+from multimedia_system.video_editor import VideoEditor
 from classes.DataBase import PostgresSQL_DataBase
 from classes.ThreadExecutor import FFMpegThreads
 

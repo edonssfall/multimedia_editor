@@ -4,7 +4,7 @@ from unittest import TestCase
 import json
 import ffmpeg
 
-from video_system.video_editor import VideoEditor
+from multimedia_system.video_editor import VideoEditor
 from dotenv import load_dotenv
 
 load_dotenv()

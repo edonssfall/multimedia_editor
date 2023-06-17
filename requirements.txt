@@ -7,3 +7,7 @@ python-ffmpeg==2.0.4
 ffmpeg==1.4
 ffmpeg-python==0.2.0
 keyboard==0.13.5
+torch==2.0.1
+Pillow==9.5.0
+drive==0.4.1
+requests~=2.31.0

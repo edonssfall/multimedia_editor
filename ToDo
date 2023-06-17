@@ -20,8 +20,8 @@
 * Path to win and unix through os.path
 
 
-* Add class image
-* Search through all selected space
+# Add class image
+# Search through all selected space
 * Upscale and rename translit image
 
 
@@ -37,4 +37,4 @@ Visualization:
 
 Tests:
     * With changed same frames
-    * Video without same frames
+    * Fix problem with GPU memory

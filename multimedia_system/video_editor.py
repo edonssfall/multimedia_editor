@@ -4,7 +4,7 @@ import os
 import ffmpeg
 import numpy as np
 from alive_progress import alive_bar
-from video_system import compare_frames
+from multimedia_system import compare_frames
 
 
 class VideoEditor:
